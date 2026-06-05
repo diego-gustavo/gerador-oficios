@@ -1,10 +1,5 @@
-.agents/
-*.json
-__ycache__/
-.codex-test-deps/
-.codex-python-runtime/
-.codex-python-layout/
-.codex-python-nuget/
-.codex-python.nupkg
-.codex-python-installer.exe
-.codex-python-install*.logp
+node_modules
+dist
+src-tauri/target
+.DS_Store
+*.log
