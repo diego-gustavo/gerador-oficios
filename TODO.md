@@ -45,10 +45,13 @@ Objetivo: recriar o aplicativo `achados-e-perdidos_brt-sorocaba` dentro de `gera
 - [ ] Remover React do fluxo final: `src/main.tsx`, `App.tsx`, pages TSX e components TSX viram referencia ou sao migrados.
 - [ ] Atualizar `vite.config.ts` para Vite sem `@vitejs/plugin-react`.
 - [ ] Criar estrutura TS pura:
-  - `src/main.ts`: bootstrap, estado global, rotas por hash.
-  - `src/state.ts`: config, toast, rascunho pendente, estado do gerador.
-  - `src/router.ts`: geradores, achados-e-perdidos, rascunhos, configuracoes, ajuda.
-  - `src/dom.ts`: helpers pequenos para criar elementos, forms e botoes.
+  - `src/main.ts`: bootstrap, shell, toast, aparencia e composicao das telas.
+  - `src/app/state.ts`: config, toast, rascunho pendente e estado do gerador.
+  - `src/app/routes.ts`: hash routing, titulos e mapas de rota.
+  - `src/app/context.ts`: contrato compartilhado entre shell e paginas.
+  - `src/pages/*.ts`: geradores, achados-e-perdidos, rascunhos, configuracoes e ajuda.
+  - `src/ui/*.ts`: helpers de DOM, icones e componentes HTML pequenos.
+  - `src/styles/app.css`: folha principal da aplicacao.
   - `src/services/tauri.ts`: manter ponte Tauri ja existente.
   - `src/modules/lost-found/format.ts`: manter formatacao, validacao de data e ids.
 - [ ] Recriar layout principal sem React:

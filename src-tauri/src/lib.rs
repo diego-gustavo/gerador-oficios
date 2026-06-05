@@ -237,7 +237,8 @@ fn next_number_from_sheet(path: &str, sheet_name: &str, year: i32) -> Result<Str
     let range = workbook
         .worksheet_range(sheet_name)
         .map_err(|err| err.to_string())?;
-    let re = Regex::new(&format!(r"^\s*(\d+)\s*/\s*{}\s*$", year)).map_err(|err| err.to_string())?;
+    let re =
+        Regex::new(&format!(r"^\s*(\d+)\s*/\s*{}\s*$", year)).map_err(|err| err.to_string())?;
     let mut max_number = 0;
 
     for row in range.rows() {
@@ -295,7 +296,12 @@ fn long_date_text(date: NaiveDate) -> String {
 fn format_lost_found_item(item: &LostFoundItem) -> String {
     let mut output = item.item.trim().to_string();
 
-    if let Some(marca) = item.marca.as_ref().map(|value| value.trim()).filter(|value| !value.is_empty()) {
+    if let Some(marca) = item
+        .marca
+        .as_ref()
+        .map(|value| value.trim())
+        .filter(|value| !value.is_empty())
+    {
         output.push(' ');
         output.push('"');
         output.push_str(marca);
@@ -324,29 +330,54 @@ fn escape_xml(value: &str) -> String {
         .replace('\'', "&apos;")
 }
 
-fn list_xml(items: &[LostFoundItem]) -> String {
+fn list_xml(items: &[LostFoundItem], paragraph_properties: Option<&str>) -> String {
+    let uses_word_numbering = paragraph_properties
+        .map(|properties| properties.contains("<w:numPr>"))
+        .unwrap_or(false);
+    let ppr =
+        paragraph_properties.unwrap_or(r#"<w:pPr><w:spacing w:before="0" w:after="0"/></w:pPr>"#);
+
     items
         .iter()
         .enumerate()
         .map(|(idx, item)| {
-            let text = format!("{}. {}", idx + 1, format_lost_found_item(item));
+            let text = if uses_word_numbering {
+                format_lost_found_item(item)
+            } else {
+                format!("{}. {}", idx + 1, format_lost_found_item(item))
+            };
             format!(
-                r#"<w:p><w:pPr><w:spacing w:before="0" w:after="0"/></w:pPr><w:r><w:t>{}</w:t></w:r></w:p>"#,
-                escape_xml(&text)
+                r#"<w:p>{}<w:r><w:t>{}</w:t></w:r></w:p>"#,
+                ppr,
+                escape_xml(&text),
             )
         })
         .collect::<Vec<_>>()
         .join("")
 }
 
-fn replace_list_placeholder(xml: &str, replacement: &str) -> Result<String, String> {
+fn replace_list_placeholder(xml: &str, items: &[LostFoundItem]) -> Result<String, String> {
     let paragraph_re = Regex::new(r#"(?s)<w:p\b[^>]*>.*?\{\{LISTA_ITENS\}\}.*?</w:p>"#)
         .map_err(|err| err.to_string())?;
+    let paragraph_properties_re =
+        Regex::new(r#"(?s)<w:pPr\b[^>]*>.*?</w:pPr>"#).map_err(|err| err.to_string())?;
 
-    if paragraph_re.is_match(xml) {
-        Ok(paragraph_re.replace(xml, replacement).to_string())
+    if let Some(paragraph_match) = paragraph_re.find(xml) {
+        let paragraph = paragraph_match.as_str();
+        let paragraph_properties = paragraph_properties_re
+            .find(paragraph)
+            .map(|value| value.as_str());
+        let replacement = list_xml(items, paragraph_properties);
+
+        Ok(format!(
+            "{}{}{}",
+            &xml[..paragraph_match.start()],
+            replacement,
+            &xml[paragraph_match.end()..]
+        ))
     } else if xml.contains("{{LISTA_ITENS}}") {
-        Ok(xml.replace("{{LISTA_ITENS}}", replacement))
+        let replacement = list_xml(items, None);
+        Ok(xml.replace("{{LISTA_ITENS}}", &replacement))
     } else {
         Err("Tag {{LISTA_ITENS}} não encontrada no template.".to_string())
     }
@@ -402,7 +433,7 @@ fn generate_docx_from_template(
             if let Ok(xml) = String::from_utf8(contents.clone()) {
                 let mut edited = replace_docx_tags(&xml, payload, date);
                 if edited.contains("{{LISTA_ITENS}}") {
-                    edited = replace_list_placeholder(&edited, &list_xml(&payload.items))?;
+                    edited = replace_list_placeholder(&edited, &payload.items)?;
                     found_list_tag = true;
                 }
                 contents = edited.into_bytes();
@@ -473,7 +504,10 @@ fn pick_folder() -> Result<Option<String>, String> {
 }
 
 #[tauri::command]
-fn pick_save_file(default_file_name: String, default_dir: Option<String>) -> Result<Option<String>, String> {
+fn pick_save_file(
+    default_file_name: String,
+    default_dir: Option<String>,
+) -> Result<Option<String>, String> {
     let mut dialog = rfd::FileDialog::new()
         .add_filter("Documento Word", &["docx"])
         .set_file_name(default_file_name);
@@ -539,7 +573,11 @@ fn generate_document(
 }
 
 #[tauri::command]
-fn append_excel_row(app: AppHandle, module_id: String, payload: LostFoundGeneratePayload) -> Result<(), String> {
+fn append_excel_row(
+    app: AppHandle,
+    module_id: String,
+    payload: LostFoundGeneratePayload,
+) -> Result<(), String> {
     let module_id = sanitize_module_id(&module_id)?;
     if module_id != LOST_FOUND_MODULE_ID {
         return Err("Registro em Excel ainda não implementado para este módulo.".to_string());
@@ -634,7 +672,11 @@ fn read_drafts_from_dir(dir: &Path, drafts: &mut Vec<ModuleDraft>) -> Result<(),
 }
 
 #[tauri::command]
-fn save_draft(app: AppHandle, module_id: String, mut draft: ModuleDraft) -> Result<ModuleDraft, String> {
+fn save_draft(
+    app: AppHandle,
+    module_id: String,
+    mut draft: ModuleDraft,
+) -> Result<ModuleDraft, String> {
     let module_id = sanitize_module_id(&module_id)?;
     let dir = drafts_root(&app, &module_id)?;
     let now = now_iso();
@@ -687,6 +729,62 @@ fn delete_draft(app: AppHandle, module_id: String, draft_id: String) -> Result<(
         fs::remove_file(path).map_err(|err| err.to_string())?;
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn sample_item() -> LostFoundItem {
+        LostFoundItem {
+            id: "item-1".to_string(),
+            item: "Cartao".to_string(),
+            marca: Some("Caixa".to_string()),
+            descricao: Some("Diego".to_string()),
+        }
+    }
+
+    fn sample_payload() -> LostFoundGeneratePayload {
+        LostFoundGeneratePayload {
+            year: 2026,
+            officio_number: "7/2026".to_string(),
+            officio_date: "05/06/2026".to_string(),
+            responsible: "Diego".to_string(),
+            items: vec![sample_item()],
+        }
+    }
+
+    #[test]
+    fn formats_lost_found_item_with_optional_fields() {
+        assert_eq!(
+            format_lost_found_item(&sample_item()),
+            r#"Cartao "Caixa" - Diego"#
+        );
+    }
+
+    #[test]
+    fn formats_long_date_in_portuguese() {
+        let date = NaiveDate::from_ymd_opt(2026, 6, 5).unwrap();
+        assert_eq!(long_date_text(date), "5 de Junho de 2026");
+    }
+
+    #[test]
+    fn builds_default_save_filename() {
+        assert_eq!(
+            save_filename(&sample_payload()).unwrap(),
+            "2026 007 - Encaminhamento de Achados e Perdidos.docx"
+        );
+    }
+
+    #[test]
+    fn keeps_word_numbering_when_placeholder_paragraph_has_num_pr() {
+        let ppr = r#"<w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="9"/></w:numPr></w:pPr>"#;
+        let xml = list_xml(&[sample_item()], Some(ppr));
+
+        assert!(xml.contains(r#"<w:numId w:val="9"/>"#));
+        assert!(xml.contains(r#"Cartao &quot;Caixa&quot; - Diego"#));
+        assert!(!xml.contains("1. Cartao"));
+    }
 }
 
 pub fn run() {

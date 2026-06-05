@@ -100,6 +100,11 @@ button:disabled {
   opacity: 0.58;
 }
 
+.lucide-icon {
+  flex: 0 0 auto;
+  stroke-width: 2;
+}
+
 input,
 select,
 textarea {
@@ -759,6 +764,14 @@ p {
 }
 
 @media (max-width: 720px) {
+  html,
+  body,
+  #root,
+  .app-shell {
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+
   .app-shell {
     grid-template-columns: 1fr;
   }
@@ -777,11 +790,16 @@ p {
   }
 
   .nav-list {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 4px;
+    width: 100%;
   }
 
   .nav-button {
     min-height: 40px;
+    min-width: 0;
+    padding: 9px 0;
   }
 
   .workspace {
@@ -805,6 +823,19 @@ p {
   .section-title,
   .toolbar {
     align-items: stretch;
+  }
+
+  .toolbar {
+    display: grid;
+  }
+
+  .number-pill,
+  .year-control {
+    width: 100%;
+  }
+
+  .year-control {
+    grid-template-columns: 38px 1fr 38px;
   }
 
   .section-title,

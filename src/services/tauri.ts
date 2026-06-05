@@ -81,8 +81,8 @@ export async function pickSaveFile(defaultFileName: string, defaultDir?: string)
     return null;
   }
   return invoke<string | null>("pick_save_file", {
-    default_file_name: defaultFileName,
-    default_dir: defaultDir || null,
+    defaultFileName,
+    defaultDir: defaultDir || null,
   });
 }
 
@@ -96,7 +96,7 @@ export async function getDefaultSaveFilename(payload: LostFoundGeneratePayload) 
 
 export async function getNextOfficio(moduleId: string, year: number) {
   if (isTauriRuntime()) {
-    return invoke<string>("get_next_officio", { module_id: moduleId, year });
+    return invoke<string>("get_next_officio", { moduleId, year });
   }
   return `1/${year}`;
 }
@@ -110,9 +110,9 @@ export async function generateDocument(
     throw new Error("A geração de documentos está disponível apenas no app Tauri.");
   }
   return invoke<GeneratedDocument>("generate_document", {
-    module_id: moduleId,
+    moduleId,
     payload,
-    save_path: savePath,
+    savePath,
   });
 }
 
@@ -120,12 +120,12 @@ export async function appendExcelRow(moduleId: string, payload: LostFoundGenerat
   if (!isTauriRuntime()) {
     throw new Error("O registro em planilha está disponível apenas no app Tauri.");
   }
-  return invoke<void>("append_excel_row", { module_id: moduleId, payload });
+  return invoke<void>("append_excel_row", { moduleId, payload });
 }
 
 export async function listDrafts(moduleId?: string) {
   if (isTauriRuntime()) {
-    return invoke<ModuleDraft[]>("list_drafts", { module_id: moduleId || null });
+    return invoke<ModuleDraft[]>("list_drafts", { moduleId: moduleId || null });
   }
   const drafts = readLocalDrafts();
   return moduleId ? drafts.filter((draft) => draft.moduleId === moduleId) : drafts;
@@ -134,7 +134,7 @@ export async function listDrafts(moduleId?: string) {
 export async function saveDraft<TPayload>(moduleId: string, draft: ModuleDraft<TPayload>) {
   if (isTauriRuntime()) {
     return invoke<ModuleDraft<TPayload>>("save_draft", {
-      module_id: moduleId,
+      moduleId,
       draft,
     });
   }
@@ -161,8 +161,8 @@ export async function saveDraft<TPayload>(moduleId: string, draft: ModuleDraft<T
 export async function loadDraft<TPayload>(moduleId: string, draftId: string) {
   if (isTauriRuntime()) {
     return invoke<ModuleDraft<TPayload>>("load_draft", {
-      module_id: moduleId,
-      draft_id: draftId,
+      moduleId,
+      draftId,
     });
   }
   const draft = readLocalDrafts().find(
@@ -176,7 +176,7 @@ export async function loadDraft<TPayload>(moduleId: string, draftId: string) {
 
 export async function deleteDraft(moduleId: string, draftId: string) {
   if (isTauriRuntime()) {
-    return invoke<void>("delete_draft", { module_id: moduleId, draft_id: draftId });
+    return invoke<void>("delete_draft", { moduleId, draftId });
   }
   writeLocalDrafts(
     readLocalDrafts().filter(
