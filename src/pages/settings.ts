@@ -1,6 +1,6 @@
 import type { AppContext } from "../app/context";
 import { cloneConfig } from "../app/state";
-import { defaultSuggestions, normalizeConfig } from "../config/defaults";
+import { defaultConfig, defaultSuggestions, normalizeConfig } from "../config/defaults";
 import { pickFile, pickFolder, saveConfig } from "../services/tauri";
 import { AppConfig, LOST_FOUND_MODULE_ID } from "../types";
 import { button, field } from "../ui/components";
@@ -76,6 +76,7 @@ export function renderSettings(container: HTMLElement, context: AppContext) {
       </div>
 
       <footer class="settings-footer">
+        ${button("Restaurar padrao", "rotate-ccw", "reset-config", { variant: "danger" })}
         ${button("Salvar configuracoes", "save", "save-config", { variant: "primary" })}
       </footer>
     </section>
@@ -146,6 +147,8 @@ function wireSettingsFields(container: HTMLElement, context: AppContext) {
         void pickConfigPath(context, "save-dir");
       } else if (action === "save-config") {
         void handleSaveConfig(context);
+      } else if (action === "reset-config") {
+        void handleResetConfig(context);
       }
     });
   });
@@ -186,6 +189,28 @@ async function handleSaveConfig(context: AppContext) {
     context.showToast({
       tone: "danger",
       message: error instanceof Error ? error.message : "Falha ao salvar configuracoes.",
+    });
+  }
+}
+
+async function handleResetConfig(context: AppContext) {
+  if (!window.confirm("Restaurar todas as configuracoes para o padrao?")) {
+    return;
+  }
+
+  const { state } = context;
+  try {
+    const saved = await saveConfig(normalizeConfig(defaultConfig));
+    state.config = normalizeConfig(saved);
+    state.settingsDraft = cloneConfig(state.config);
+    context.applyAppearance();
+    context.showToast({ tone: "success", message: "Configuracoes restauradas." });
+    context.renderApp();
+  } catch (error) {
+    context.showToast({
+      tone: "danger",
+      message:
+        error instanceof Error ? error.message : "Falha ao restaurar configuracoes.",
     });
   }
 }

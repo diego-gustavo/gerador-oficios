@@ -368,7 +368,7 @@ p {
 
 .form-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(205px, 1fr));
   gap: 12px;
 }
 
@@ -392,10 +392,49 @@ p {
   font-size: 0.86rem;
 }
 
+.input-with-button {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 38px;
+  gap: 6px;
+  align-items: center;
+}
+
+.input-with-button input[readonly] {
+  background: var(--panel-soft);
+  color: var(--muted);
+}
+
+.field-icon-button {
+  width: 38px;
+  height: 38px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  color: var(--text);
+  padding: 0;
+}
+
+.field-icon-button:hover {
+  background: var(--panel-soft);
+}
+
+.native-date-input {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 38px;
+  height: 38px;
+  opacity: 0;
+  pointer-events: none;
+}
+
 .item-editor {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(220px, 1.2fr) minmax(140px, 0.7fr) minmax(220px, 1.2fr) auto;
+  grid-template-columns: minmax(190px, 1.15fr) minmax(130px, 0.7fr) minmax(180px, 1fr) minmax(180px, 1fr) auto;
   gap: 12px;
   align-items: end;
   padding: 14px;
@@ -691,9 +730,25 @@ p {
   position: sticky;
   bottom: 0;
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  gap: 10px;
   padding: 12px 0 0;
   background: linear-gradient(to top, var(--bg) 76%, transparent);
+}
+
+.settings-footer .icon-button.danger {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.settings-footer .icon-button.danger:hover {
+  background: color-mix(in srgb, var(--danger) 88%, #000000);
+}
+
+:root[data-theme="dark"][data-contrast="high"] .settings-footer .icon-button.danger {
+  color: #000000;
 }
 
 .help-grid {

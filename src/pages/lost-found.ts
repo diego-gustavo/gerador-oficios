@@ -1,8 +1,11 @@
 import type { AppContext } from "../app/context";
 import { createLostFoundState } from "../app/state";
 import {
+  brDateToIso,
+  defaultLostFoundDocumentName,
   formatLostFoundItem,
   isValidBrDate,
+  isoDateToBr,
   makeItemId,
 } from "../modules/lost-found/format";
 import {
@@ -22,11 +25,20 @@ import {
 } from "../types";
 import { button, emptyState, field } from "../ui/components";
 import { bindInput, escapeAttr, escapeHtml, query } from "../ui/dom";
+import { icon } from "../ui/icons";
 
 export function renderLostFound(container: HTMLElement, context: AppContext) {
   const { state } = context;
   const lostFound = state.lostFound;
+  if (!lostFound.documentName) {
+    syncDocumentName(context);
+  }
+
   const canClear = lostFound.items.length > 0 && !lostFound.busy;
+  const datePickerValue = brDateToIso(lostFound.officioDate);
+  const lockLabel = lostFound.documentNameLocked
+    ? "Liberar edicao do nome do oficio"
+    : "Bloquear e restaurar nome padrao";
   const itemRows = lostFound.items.length
     ? lostFound.items
         .map(
@@ -40,7 +52,10 @@ export function renderLostFound(container: HTMLElement, context: AppContext) {
           `,
         )
         .join("")
-    : emptyState("Nenhum item adicionado", "Informe item, marca opcional e descricao.");
+    : emptyState(
+        "Nenhum item adicionado",
+        "Informe item, marca, descricao e observacao quando houver.",
+      );
 
   container.innerHTML = `
     <section class="page page-grid">
@@ -69,8 +84,26 @@ export function renderLostFound(container: HTMLElement, context: AppContext) {
         </div>
 
         <div class="form-grid compact">
-          ${field("Data do oficio", "lf-date", lostFound.officioDate, "dd/mm/aaaa", "numeric")}
+          <label class="field" for="lf-date">
+            <span>Data do oficio</span>
+            <div class="input-with-button date-input-group">
+              <input id="lf-date" value="${escapeAttr(lostFound.officioDate)}" placeholder="dd/mm/aaaa" inputmode="numeric" />
+              <button type="button" class="field-icon-button" data-action="pick-date" aria-label="Abrir calendario" title="Abrir calendario">
+                ${icon("calendar-days")}
+              </button>
+              <input id="lf-date-native" class="native-date-input" type="date" value="${escapeAttr(datePickerValue)}" tabindex="-1" aria-hidden="true" />
+            </div>
+          </label>
           ${field("Responsavel", "lf-responsible", lostFound.responsible, "Nome do responsavel")}
+          <label class="field" for="lf-document-name">
+            <span>Nome do oficio</span>
+            <div class="input-with-button lock-input-group">
+              <input id="lf-document-name" value="${escapeAttr(lostFound.documentName)}" placeholder="Nome do oficio" ${lostFound.documentNameLocked ? "readonly" : ""} />
+              <button type="button" class="field-icon-button" data-action="toggle-document-name-lock" aria-label="${escapeAttr(lockLabel)}" title="${escapeAttr(lockLabel)}">
+                ${icon(lostFound.documentNameLocked ? "lock" : "lock-open")}
+              </button>
+            </div>
+          </label>
           ${field("Nome do rascunho", "lf-draft-name", lostFound.draftName)}
         </div>
 
@@ -82,6 +115,7 @@ export function renderLostFound(container: HTMLElement, context: AppContext) {
           </div>
           ${field("Marca", "lf-marca", lostFound.marca, "Opcional")}
           ${field("Descricao", "lf-descricao", lostFound.descricao, "Opcional")}
+          ${field("Observacao", "lf-observacao", lostFound.observacao, "Opcional")}
           <div class="item-actions">
             ${button(lostFound.editingId ? "Atualizar" : "Adicionar", lostFound.editingId ? "check" : "plus", "add-item", {
               variant: "primary",
@@ -117,6 +151,11 @@ export function renderLostFound(container: HTMLElement, context: AppContext) {
   bindInput(container, "#lf-responsible", (value) => {
     state.lostFound.responsible = value;
   });
+  bindInput(container, "#lf-document-name", (value) => {
+    if (!state.lostFound.documentNameLocked) {
+      state.lostFound.documentName = value;
+    }
+  });
   bindInput(container, "#lf-draft-name", (value) => {
     state.lostFound.draftName = value;
   });
@@ -125,6 +164,17 @@ export function renderLostFound(container: HTMLElement, context: AppContext) {
   });
   bindInput(container, "#lf-descricao", (value) => {
     state.lostFound.descricao = value;
+  });
+  bindInput(container, "#lf-observacao", (value) => {
+    state.lostFound.observacao = value;
+  });
+
+  query<HTMLInputElement>("#lf-date-native", container).addEventListener("change", (event) => {
+    const value = isoDateToBr((event.currentTarget as HTMLInputElement).value);
+    if (value) {
+      state.lostFound.officioDate = value;
+      context.renderApp();
+    }
   });
 
   wireLostFoundSuggestions(container, context);
@@ -142,6 +192,7 @@ export async function refreshNextOfficio(context: AppContext) {
     const next = await getNextOfficio(LOST_FOUND_MODULE_ID, year);
     if (state.lostFound.year === year) {
       state.lostFound.officioNumber = next;
+      syncDocumentName(context);
     }
   } catch (error) {
     context.showToast({
@@ -166,6 +217,12 @@ export function applyLostFoundDraft(
     currentDraftId: draft.draftId,
     draftName: draft.name,
   };
+  if (typeof context.state.lostFound.documentNameLocked !== "boolean") {
+    context.state.lostFound.documentNameLocked = true;
+  }
+  if (!context.state.lostFound.documentName) {
+    syncDocumentName(context);
+  }
 }
 
 function wireLostFoundSuggestions(container: HTMLElement, context: AppContext) {
@@ -226,6 +283,47 @@ function wireLostFoundSuggestions(container: HTMLElement, context: AppContext) {
   );
 }
 
+function syncDocumentName(context: AppContext) {
+  const lostFound = context.state.lostFound;
+  if (!lostFound.documentNameLocked) {
+    return;
+  }
+  lostFound.documentName = defaultLostFoundDocumentName(
+    lostFound.year,
+    lostFound.officioNumber,
+  );
+}
+
+function openNativeDatePicker(container: HTMLElement, context: AppContext) {
+  const picker = query<HTMLInputElement>("#lf-date-native", container);
+  const pickerWithShow = picker as HTMLInputElement & { showPicker?: () => void };
+  const currentValue = brDateToIso(context.state.lostFound.officioDate);
+  if (currentValue) {
+    picker.value = currentValue;
+  }
+
+  if (pickerWithShow.showPicker) {
+    pickerWithShow.showPicker();
+  } else {
+    picker.focus();
+    picker.click();
+  }
+}
+
+function toggleDocumentNameLock(context: AppContext) {
+  const lostFound = context.state.lostFound;
+  lostFound.documentNameLocked = !lostFound.documentNameLocked;
+  if (lostFound.documentNameLocked) {
+    syncDocumentName(context);
+  }
+
+  context.renderApp();
+
+  if (!context.state.lostFound.documentNameLocked) {
+    query<HTMLInputElement>("#lf-document-name").focus();
+  }
+}
+
 function wireLostFoundActions(container: HTMLElement, context: AppContext) {
   container.querySelectorAll<HTMLButtonElement>("[data-action]").forEach((item) => {
     item.addEventListener("click", () => {
@@ -236,12 +334,20 @@ function wireLostFoundActions(container: HTMLElement, context: AppContext) {
         context.navigate("drafts");
       } else if (action === "year-down") {
         context.state.lostFound.year -= 1;
+        context.state.lostFound.officioNumber = `1/${context.state.lostFound.year}`;
+        syncDocumentName(context);
         void refreshNextOfficio(context);
       } else if (action === "year-up") {
         context.state.lostFound.year += 1;
+        context.state.lostFound.officioNumber = `1/${context.state.lostFound.year}`;
+        syncDocumentName(context);
         void refreshNextOfficio(context);
       } else if (action === "refresh-number") {
         void refreshNextOfficio(context);
+      } else if (action === "pick-date") {
+        openNativeDatePicker(container, context);
+      } else if (action === "toggle-document-name-lock") {
+        toggleDocumentNameLock(context);
       } else if (action === "add-item") {
         addOrUpdateItem(context);
       } else if (action === "cancel-edit") {
@@ -277,6 +383,7 @@ function addOrUpdateItem(context: AppContext) {
     item: itemName,
     marca: lostFound.marca.trim(),
     descricao: lostFound.descricao.trim(),
+    observacao: lostFound.observacao.trim(),
   };
 
   if (lostFound.editingId) {
@@ -301,6 +408,7 @@ function editItem(context: AppContext, id: string) {
   context.state.lostFound.itemName = item.item;
   context.state.lostFound.marca = item.marca || "";
   context.state.lostFound.descricao = item.descricao || "";
+  context.state.lostFound.observacao = item.observacao || "";
   context.renderApp();
   query<HTMLInputElement>("#lf-item").focus();
 }
@@ -330,6 +438,7 @@ function resetItemForm(context: AppContext) {
   context.state.lostFound.itemName = "";
   context.state.lostFound.marca = "";
   context.state.lostFound.descricao = "";
+  context.state.lostFound.observacao = "";
   context.state.lostFound.editingId = null;
 }
 
@@ -339,8 +448,18 @@ function buildLostFoundPayload(context: AppContext): LostFoundGeneratePayload {
     year: lostFound.year,
     officioNumber: lostFound.officioNumber,
     officioDate: lostFound.officioDate,
+    documentName:
+      lostFound.documentName.trim() ||
+      defaultLostFoundDocumentName(lostFound.year, lostFound.officioNumber),
     responsible: lostFound.responsible.trim(),
     items: lostFound.items,
+  };
+}
+
+function buildLostFoundDraftPayload(context: AppContext): LostFoundDraftPayload {
+  return {
+    ...buildLostFoundPayload(context),
+    documentNameLocked: context.state.lostFound.documentNameLocked,
   };
 }
 
@@ -350,6 +469,9 @@ function validateLostFound(payload: LostFoundGeneratePayload) {
   }
   if (!isValidBrDate(payload.officioDate)) {
     return "Data invalida. Use dd/mm/aaaa.";
+  }
+  if (!payload.documentName.trim()) {
+    return "Informe o nome do oficio.";
   }
   if (!payload.responsible) {
     return "Informe o responsavel.";
@@ -375,7 +497,7 @@ async function handleSaveDraft(context: AppContext) {
       draftId: state.lostFound.currentDraftId,
       moduleId: LOST_FOUND_MODULE_ID,
       name: state.lostFound.draftName.trim() || "Achados e Perdidos",
-      payload: buildLostFoundPayload(context),
+      payload: buildLostFoundDraftPayload(context),
     });
 
     state.lostFound.currentDraftId = saved.draftId;
@@ -417,6 +539,7 @@ async function handleGenerate(context: AppContext) {
 
     state.lostFound.items = [];
     state.lostFound.responsible = "";
+    state.lostFound.documentNameLocked = true;
     state.lostFound.currentDraftId = undefined;
     state.lostFound.draftName = "Achados e Perdidos";
     resetItemForm(context);

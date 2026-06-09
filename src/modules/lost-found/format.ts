@@ -4,14 +4,24 @@ export function formatLostFoundItem(item: LostFoundItem) {
   const base = item.item.trim();
   const marca = item.marca?.trim();
   const descricao = item.descricao?.trim();
+  const observacao = item.observacao?.trim();
 
   return [
     base,
     marca ? `"${marca}"` : "",
     descricao ? `- ${descricao}` : "",
+    observacao ? `(${observacao})` : "",
   ]
     .filter(Boolean)
     .join(" ");
+}
+
+export function defaultLostFoundDocumentName(year: number, officioNumber: string) {
+  const number = Number(officioNumber.split("/")[0] || "1");
+  const paddedNumber = Number.isFinite(number)
+    ? String(number).padStart(3, "0")
+    : "001";
+  return `${year} ${paddedNumber} - Encaminhamento de Achados e Perdidos`;
 }
 
 export function todayBrDate() {
@@ -33,6 +43,22 @@ export function isValidBrDate(value: string) {
     date.getMonth() === month - 1 &&
     date.getDate() === day
   );
+}
+
+export function brDateToIso(value: string) {
+  if (!isValidBrDate(value)) {
+    return "";
+  }
+  const [day, month, year] = value.split("/");
+  return `${year}-${month}-${day}`;
+}
+
+export function isoDateToBr(value: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return "";
+  }
+  const [year, month, day] = value.split("-");
+  return `${day}/${month}/${year}`;
 }
 
 export function makeItemId() {

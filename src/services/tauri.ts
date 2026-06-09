@@ -90,8 +90,19 @@ export async function getDefaultSaveFilename(payload: LostFoundGeneratePayload) 
   if (isTauriRuntime()) {
     return invoke<string>("get_default_save_filename", { payload });
   }
+  if (payload.documentName.trim()) {
+    return ensureDocxExtension(sanitizeFileName(payload.documentName));
+  }
   const number = Number(payload.officioNumber.split("/")[0] || "1");
   return `${payload.year} ${String(number).padStart(3, "0")} - Encaminhamento de Achados e Perdidos.docx`;
+}
+
+function sanitizeFileName(value: string) {
+  return value.trim().replace(/[<>:"/\\|?*\u0000-\u001f]/g, " ").replace(/\s+/g, " ");
+}
+
+function ensureDocxExtension(value: string) {
+  return value.toLowerCase().endsWith(".docx") ? value : `${value}.docx`;
 }
 
 export async function getNextOfficio(moduleId: string, year: number) {

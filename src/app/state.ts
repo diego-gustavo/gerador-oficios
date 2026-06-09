@@ -1,5 +1,8 @@
 import { defaultConfig, normalizeConfig } from "../config/defaults";
-import { todayBrDate } from "../modules/lost-found/format";
+import {
+  defaultLostFoundDocumentName,
+  todayBrDate,
+} from "../modules/lost-found/format";
 import {
   AppConfig,
   AppRoute,
@@ -18,6 +21,7 @@ export interface LostFoundState extends LostFoundDraftPayload {
   loadingNumber: boolean;
   marca: string;
   descricao: string;
+  observacao: string;
 }
 
 export interface AppState {
@@ -35,10 +39,13 @@ export interface AppState {
 
 export function createLostFoundState(): LostFoundState {
   const year = new Date().getFullYear();
+  const officioNumber = `1/${year}`;
   return {
     year,
-    officioNumber: `1/${year}`,
+    officioNumber,
     officioDate: todayBrDate(),
+    documentName: defaultLostFoundDocumentName(year, officioNumber),
+    documentNameLocked: true,
     responsible: "",
     items: [],
     busy: false,
@@ -48,6 +55,7 @@ export function createLostFoundState(): LostFoundState {
     loadingNumber: false,
     marca: "",
     descricao: "",
+    observacao: "",
   };
 }
 

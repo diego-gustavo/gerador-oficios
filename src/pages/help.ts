@@ -1,3 +1,5 @@
+import { generatorModules } from "../modules/registry";
+import { escapeHtml } from "../ui/dom";
 import { icon } from "../ui/icons";
 
 export function renderHelp(container: HTMLElement) {
@@ -11,25 +13,24 @@ export function renderHelp(container: HTMLElement) {
       </div>
 
       <div class="help-grid">
-        <section class="help-block">
-          <h2>${icon("list-checks")} Passo a passo</h2>
-          <ol>
-            <li>Verifique ano e numero do oficio.</li>
-            <li>Preencha data, responsavel e itens.</li>
-            <li>Adicione cada item com marca e descricao quando houver.</li>
-            <li>Salve rascunho se precisar interromper.</li>
-            <li>Gere o oficio e confirme o registro na planilha.</li>
-          </ol>
-        </section>
-        <section class="help-block">
-          <h2>${icon("file-text")} Template Word</h2>
-          <p>O template precisa conter as tags {{DATA}}, {{OFICIO}} e {{LISTA_ITENS}}.</p>
-        </section>
-        <section class="help-block">
-          <h2>${icon("sheet")} Planilha</h2>
-          <p>A aba do ano deve conter o texto Oficios Emitidos. O app registra numero, assunto, data, destino e responsavel.</p>
-        </section>
+        ${generatorModules.map(renderModuleHelpCard).join("")}
       </div>
+    </section>
+  `;
+}
+
+function renderModuleHelpCard(module: (typeof generatorModules)[number]) {
+  return `
+    <section class="help-block module-help-card">
+      <h2>${icon("file-text")} ${escapeHtml(module.name)}</h2>
+      <p>${escapeHtml(module.description)}</p>
+      <ol>
+        <li>Confira ano, numero e data do oficio.</li>
+        <li>Preencha responsavel e itens no formato Item "Marca" - Descricao (Observacao).</li>
+        <li>Use rascunhos para salvar uma emissao em andamento.</li>
+        <li>Gere o documento e registre a emissao na planilha configurada.</li>
+      </ol>
+      <p>Tags do template: ${module.templateTags.map((tag) => escapeHtml(tag)).join(", ")}.</p>
     </section>
   `;
 }

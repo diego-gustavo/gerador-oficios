@@ -18,7 +18,6 @@ Objetivo: recriar o aplicativo `achados-e-perdidos_brt-sorocaba` dentro de `gera
 - [ ] Gerador deve validar data `dd/mm/aaaa`.
 - [ ] Gerador deve exigir responsavel.
 - [ ] Gerador deve exigir pelo menos 1 item.
-- [ ] Itens devem seguir formato novo do TODO antigo: `Item "Marca" - Descricao`.
 - [ ] Itens devem seguir formato atualizado: `Item "Marca" - Descricao (Observacao)`.
 - [ ] Marca deve ser opcional.
 - [ ] Descricao deve ser opcional.

@@ -51,6 +51,7 @@ pub struct LostFoundItem {
     pub item: String,
     pub marca: Option<String>,
     pub descricao: Option<String>,
+    pub observacao: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -59,6 +60,7 @@ pub struct LostFoundGeneratePayload {
     pub year: i32,
     pub officio_number: String,
     pub officio_date: String,
+    pub document_name: Option<String>,
     pub responsible: String,
     pub items: Vec<LostFoundItem>,
 }
@@ -318,6 +320,18 @@ fn format_lost_found_item(item: &LostFoundItem) -> String {
         output.push_str(descricao);
     }
 
+    if let Some(observacao) = item
+        .observacao
+        .as_ref()
+        .map(|value| value.trim())
+        .filter(|value| !value.is_empty())
+    {
+        output.push(' ');
+        output.push('(');
+        output.push_str(observacao);
+        output.push(')');
+    }
+
     output
 }
 
@@ -462,7 +476,41 @@ fn module_config<'a>(config: &'a AppConfig, module_id: &str) -> Result<&'a Modul
         .ok_or_else(|| "Módulo não configurado.".to_string())
 }
 
+fn sanitize_file_name(value: &str) -> String {
+    value
+        .chars()
+        .map(|ch| {
+            if ch.is_control() || matches!(ch, '<' | '>' | ':' | '"' | '/' | '\\' | '|' | '?' | '*')
+            {
+                ' '
+            } else {
+                ch
+            }
+        })
+        .collect::<String>()
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+fn ensure_docx_extension(value: &str) -> String {
+    if value.to_lowercase().ends_with(".docx") {
+        value.to_string()
+    } else {
+        format!("{}.docx", value)
+    }
+}
+
 fn save_filename(payload: &LostFoundGeneratePayload) -> Result<String, String> {
+    if let Some(document_name) = payload
+        .document_name
+        .as_ref()
+        .map(|value| sanitize_file_name(value))
+        .filter(|value| !value.trim().is_empty())
+    {
+        return Ok(ensure_docx_extension(&document_name));
+    }
+
     let number = payload
         .officio_number
         .split('/')
@@ -741,6 +789,7 @@ mod tests {
             item: "Cartao".to_string(),
             marca: Some("Caixa".to_string()),
             descricao: Some("Diego".to_string()),
+            observacao: Some("Azul".to_string()),
         }
     }
 
@@ -749,6 +798,7 @@ mod tests {
             year: 2026,
             officio_number: "7/2026".to_string(),
             officio_date: "05/06/2026".to_string(),
+            document_name: None,
             responsible: "Diego".to_string(),
             items: vec![sample_item()],
         }
@@ -758,7 +808,7 @@ mod tests {
     fn formats_lost_found_item_with_optional_fields() {
         assert_eq!(
             format_lost_found_item(&sample_item()),
-            r#"Cartao "Caixa" - Diego"#
+            r#"Cartao "Caixa" - Diego (Azul)"#
         );
     }
 
@@ -782,7 +832,7 @@ mod tests {
         let xml = list_xml(&[sample_item()], Some(ppr));
 
         assert!(xml.contains(r#"<w:numId w:val="9"/>"#));
-        assert!(xml.contains(r#"Cartao &quot;Caixa&quot; - Diego"#));
+        assert!(xml.contains(r#"Cartao &quot;Caixa&quot; - Diego (Azul)"#));
         assert!(!xml.contains("1. Cartao"));
     }
 }
