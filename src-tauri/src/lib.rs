@@ -223,6 +223,10 @@ fn cell_to_string(cell: Option<&Data>) -> String {
 }
 
 fn find_sheet_by_year(path: &str, year: i32) -> Result<String, String> {
+    if !Path::new(path).exists() {
+        return Err("Planilha Excel nao encontrada.".to_string());
+    }
+
     let workbook = open_workbook_auto(path).map_err(|err| err.to_string())?;
     let sheet_names = workbook.sheet_names().to_owned();
     let year_text = year.to_string();

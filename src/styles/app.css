@@ -451,7 +451,8 @@ p {
   left: 0;
   right: 0;
   max-height: 190px;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--panel);
