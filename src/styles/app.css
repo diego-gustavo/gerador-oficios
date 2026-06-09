@@ -276,6 +276,11 @@ p {
   min-height: 100%;
 }
 
+.generator-page {
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
 .page-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 220px;
@@ -314,7 +319,8 @@ p {
 .list-panel,
 .settings-section,
 .help-block,
-.action-rail {
+.action-rail,
+.action-bar {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--panel);
@@ -434,7 +440,7 @@ p {
 .item-editor {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(190px, 1.15fr) minmax(130px, 0.7fr) minmax(180px, 1fr) minmax(180px, 1fr) auto;
+  grid-template-columns: minmax(210px, 1.15fr) minmax(130px, 0.7fr) repeat(2, minmax(180px, 1fr));
   gap: 12px;
   align-items: end;
   padding: 14px;
@@ -478,6 +484,8 @@ p {
 .item-actions {
   display: flex;
   gap: 8px;
+  grid-column: 1 / -1;
+  justify-content: flex-end;
 }
 
 .icon-button {
@@ -625,6 +633,25 @@ p {
 
 .action-rail .icon-button {
   justify-content: flex-start;
+}
+
+.action-bar {
+  position: sticky;
+  z-index: 10;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  box-shadow: 0 -8px 22px rgb(15 23 42 / 8%);
+}
+
+.action-group {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .module-grid {
@@ -813,6 +840,20 @@ p {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .action-bar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .action-group {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .action-bar > .icon-button {
+    width: 100%;
+  }
+
   .item-editor,
   .form-grid {
     grid-template-columns: 1fr 1fr;
@@ -897,12 +938,18 @@ p {
   .section-title,
   .toolbar,
   .path-row,
-  .draft-row,
-  .item-row,
-  .item-editor,
-  .form-grid,
-  .action-rail {
+    .draft-row,
+    .item-row,
+    .item-editor,
+    .form-grid,
+    .action-group,
+    .action-rail {
     grid-template-columns: 1fr;
+  }
+
+  .action-bar .icon-button,
+  .action-group .icon-button {
+    width: 100%;
   }
 
   .section-title {

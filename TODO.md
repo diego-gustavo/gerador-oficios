@@ -116,6 +116,7 @@ Objetivo: recriar o aplicativo `achados-e-perdidos_brt-sorocaba` dentro de `gera
 - [x] Estados obrigatorios: vazio, carregando, erro, sucesso, ocupado.
 - [x] Confirmar antes de limpar lista, excluir rascunho e redefinir configuracoes de fabrica.
 - [x] Confirmar antes de restaurar as configuracoes para o padrao.
+- [x] Reorganizar a tela do gerador para evitar sobreposicao entre rascunhos e acoes principais.
 
 ## 4. Backend Tauri/Rust
 
@@ -210,3 +211,36 @@ Objetivo: recriar o aplicativo `achados-e-perdidos_brt-sorocaba` dentro de `gera
 - [ ] App registra linha no Excel.
 - [x] App mostra erros claros para arquivo ausente, template invalido e planilha bloqueada.
 - [ ] Build final gera executavel com logo/icone.
+
+## 9. Sugestoes futuras
+
+### Otimizacao
+
+- [ ] Criar cache de leitura da planilha por ano/modulo, com invalidacao ao gerar oficio ou alterar caminho da planilha.
+- [ ] Evitar leituras repetidas da planilha ao entrar na tela, mudando para atualizacao sob demanda quando o numero ja estiver carregado.
+- [ ] Adicionar debounce nos campos de sugestao e busca de rascunhos para reduzir renderizacoes em listas grandes.
+- [ ] Separar renderizacao de listas grandes em componentes incrementais ou virtualizados quando houver muitos rascunhos/itens.
+- [ ] Criar logs tecnicos opcionais para medir tempo de leitura da planilha, geracao DOCX e salvamento em Excel.
+- [ ] Revisar tamanho final do bundle frontend e remover codigo/estilos nao utilizados antes do empacotamento final.
+
+### Escalonamento e novos modulos
+
+- [ ] Transformar `GeneratorModule` em contrato completo com campos de formulario, validadores, template tags, assunto Excel e destino padrao.
+- [ ] Criar uma fabrica de paginas de gerador para reutilizar layout, barra de acoes, rascunhos e validacao entre modulos.
+- [ ] Separar regras especificas de Achados e Perdidos em um adaptador de modulo, mantendo frontend e backend genericos.
+- [ ] Permitir que cada modulo configure template, sugestoes, assunto, destino e colunas de registro no Excel.
+- [ ] Criar estrutura de templates por modulo em `src-tauri/resources/templates/{moduleId}/template.docx`.
+- [ ] Adicionar ajuda, configuracoes e rascunhos automaticamente para qualquer modulo registrado.
+- [ ] Criar testes fixture para cada modulo com payload, nome de arquivo esperado e lista de tags obrigatorias.
+
+### Desenvolvimento do programa
+
+- [ ] Documentar fluxo de desenvolvimento local: Node, Tauri, Rust, Visual Studio Build Tools e scripts disponiveis.
+- [ ] Criar checklist de QA manual para Word, Excel, rascunhos, temas, responsividade e erros comuns.
+- [ ] Adicionar testes unitarios TypeScript para formatacao, validacao de datas e nomes sugeridos.
+- [ ] Adicionar testes Rust com fixtures para DOCX, planilha e deteccao de proximo numero.
+- [ ] Criar pipeline de CI para `npm install`, `tsc --noEmit`, testes frontend e testes Rust em ambiente com linker configurado.
+- [ ] Padronizar mensagens de erro e toasts em um catalogo compartilhado.
+- [ ] Criar estrategia de backup/recuperacao antes de gravar planilha Excel.
+- [ ] Documentar convencao de templates Word, incluindo limitacao ou tratamento de tags quebradas em multiplos runs.
+- [ ] Revisar acessibilidade com navegacao por teclado, foco visivel, labels e contraste em todos os temas.

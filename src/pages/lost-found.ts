@@ -58,14 +58,13 @@ export function renderLostFound(container: HTMLElement, context: AppContext) {
       );
 
   container.innerHTML = `
-    <section class="page page-grid">
+    <section class="page generator-page">
       <div class="page-main">
         <div class="section-title">
           <div>
             <h1>Achados e Perdidos</h1>
             <span>Encaminhamento de itens localizados.</span>
           </div>
-          ${button("Rascunhos", "archive", "open-drafts")}
         </div>
 
         <div class="toolbar">
@@ -131,17 +130,19 @@ export function renderLostFound(container: HTMLElement, context: AppContext) {
           </div>
           <div class="items-list">${itemRows}</div>
         </div>
-      </div>
 
-      <aside class="action-rail" aria-label="Acoes do gerador">
-        ${button("Salvar rascunho", "save", "save-draft", { disabled: lostFound.busy })}
-        ${button("Carregar", "folder-open", "open-drafts", { disabled: lostFound.busy })}
-        ${button("Limpar itens", "eraser", "clear-items", { disabled: !canClear })}
-        ${button("Gerar oficio", "file-plus-2", "generate", {
-          variant: "primary",
-          disabled: lostFound.busy,
-        })}
-      </aside>
+        <footer class="action-bar" aria-label="Acoes do gerador">
+          <div class="action-group">
+            ${button("Salvar rascunho", "save", "save-draft", { disabled: lostFound.busy })}
+            ${button("Carregar rascunho", "folder-open", "open-drafts", { disabled: lostFound.busy })}
+            ${button("Limpar itens", "eraser", "clear-items", { disabled: !canClear })}
+          </div>
+          ${button("Gerar oficio", "file-plus-2", "generate", {
+            variant: "primary",
+            disabled: lostFound.busy,
+          })}
+        </footer>
+      </div>
     </section>
   `;
 
