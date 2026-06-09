@@ -46,12 +46,15 @@ export interface LostFoundItem {
   item: string;
   marca?: string;
   descricao?: string;
+  observacao?: string;
 }
 
 export interface LostFoundDraftPayload {
   year: number;
   officioNumber: string;
   officioDate: string;
+  documentName: string;
+  documentNameLocked: boolean;
   responsible: string;
   items: LostFoundItem[];
 }
@@ -60,6 +63,7 @@ export interface LostFoundGeneratePayload {
   year: number;
   officioNumber: string;
   officioDate: string;
+  documentName: string;
   responsible: string;
   items: LostFoundItem[];
 }

@@ -13,20 +13,24 @@ Objetivo: recriar o aplicativo `achados-e-perdidos_brt-sorocaba` dentro de `gera
 ## 1. Paridade funcional com app Python antigo
 
 - [ ] Gerador deve calcular proximo oficio lendo a planilha Excel.
-- [ ] Gerador deve achar aba do ano com padrao `Oficios Emitidos`, aceitando variacoes com acento.
+- [ ] Gerador deve achar aba do ano com padrao `AAAA Oficios Emitidos`, aceitando variacoes com acento.
 - [ ] Gerador deve criar numero no formato `N/AAAA`.
 - [ ] Gerador deve validar data `dd/mm/aaaa`.
 - [ ] Gerador deve exigir responsavel.
 - [ ] Gerador deve exigir pelo menos 1 item.
 - [ ] Itens devem seguir formato novo do TODO antigo: `Item "Marca" - Descricao`.
+- [ ] Itens devem seguir formato atualizado: `Item "Marca" - Descricao (Observacao)`.
 - [ ] Marca deve ser opcional.
 - [ ] Descricao deve ser opcional.
+- [ ] Observacao deve ser opcional.
 - [ ] Lista de sugestoes deve ter altura maxima e scroll.
 - [ ] Itens adicionados devem poder ser editados.
 - [ ] Itens adicionados devem poder ser removidos.
 - [ ] Lista inteira deve poder ser limpa com confirmacao.
 - [ ] Geracao deve pedir local de salvamento.
 - [ ] Nome sugerido deve seguir: `AAAA NNN - Encaminhamento de Achados e Perdidos.docx`.
+- [ ] Campo nome do oficio deve ficar bloqueado por padrao no formato `AAAA NNN - Encaminhamento de Achados e Perdidos`.
+- [ ] Campo nome do oficio deve ter icone de cadeado para liberar edicao manual.
 - [ ] Documento Word deve substituir `{{DATA}}`, `{{OFICIO}}` e `{{LISTA_ITENS}}`.
 - [ ] Data longa no Word deve sair em portugues: `5 de Junho de 2026`.
 - [ ] Lista de itens no Word deve preservar aparencia do template.
@@ -65,9 +69,11 @@ Objetivo: recriar o aplicativo `achados-e-perdidos_brt-sorocaba` dentro de `gera
 - [ ] Criar tela `Achados e Perdidos`:
   - controle de ano `-` e `+`
   - proximo oficio com atualizar
-  - data, responsavel, nome do rascunho
+  - data, responsavel, nome do oficio e nome do rascunho
+  - botao de calendario ao lado da data do oficio
+  - nome do oficio com cadeado e edicao liberada sob demanda
   - combo de item com sugestoes filtradas e scroll
-  - campos marca e descricao
+  - campos item, marca, descricao e observacao
   - adicionar/atualizar/cancelar item
   - lista de itens com editar/remover
   - barra de acoes: salvar rascunho, carregar, limpar, gerar oficio
@@ -85,9 +91,11 @@ Objetivo: recriar o aplicativo `achados-e-perdidos_brt-sorocaba` dentro de `gera
   - escala da interface
   - alto contraste
   - botao `Salvar configuracoes` fixo/alinhado a direita
+  - botao vermelho para restaurar configuracoes padrao na parte inferior
 - [ ] Nao recriar opcao `Definir como padrao do app`.
 - [ ] Nao recriar campo de tipografia.
 - [ ] Criar tela `Ajuda` curta, baseada no passo a passo do app antigo.
+- [ ] Aba `Ajuda` deve exibir um card para cada modulo de oficios.
 
 ## 3. CSS e UX
 
@@ -98,7 +106,8 @@ Objetivo: recriar o aplicativo `achados-e-perdidos_brt-sorocaba` dentro de `gera
 - [ ] Definir dimensoes estaveis para toolbar, lista, botoes e linhas.
 - [ ] Sugestoes devem ficar em painel com `max-height` e `overflow-y: auto`.
 - [ ] Estados obrigatorios: vazio, carregando, erro, sucesso, ocupado.
-- [ ] Confirmar antes de limpar lista ou excluir rascunho.
+- [ ] Confirmar antes de limpar lista, excluir rascunho e redefinir configurações de fábrica.
+- [ ] Confirmar antes de restaurar as configuracoes para o padrao.
 
 ## 4. Backend Tauri/Rust
 
