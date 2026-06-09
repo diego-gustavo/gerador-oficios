@@ -1,4 +1,5 @@
 import { AppConfig, LOST_FOUND_MODULE_ID } from "../types";
+import { generatorModules } from "../modules/registry";
 
 export const defaultSuggestions = [
   "Vale Transporte",
@@ -26,31 +27,52 @@ export const defaultConfig: AppConfig = {
   theme: "system",
   interfaceScale: 100,
   highContrast: false,
-  modules: {
-    [LOST_FOUND_MODULE_ID]: {
-      templatePath: "resources/templates/achados-e-perdidos/template.docx",
-      suggestions: defaultSuggestions,
-    },
-  },
+  modules: Object.fromEntries(
+    generatorModules.map((module) => [
+      module.moduleId,
+      {
+        templatePath: module.defaultTemplatePath,
+        suggestions: module.moduleId === LOST_FOUND_MODULE_ID ? defaultSuggestions : [],
+        excelSubject: module.excel.subject,
+        excelDestination: module.excel.destination,
+        excelColumns: module.excel.columns,
+      },
+    ]),
+  ),
 };
 
 export function normalizeConfig(config: Partial<AppConfig> | null | undefined): AppConfig {
-  const lostFound = config?.modules?.[LOST_FOUND_MODULE_ID];
+  const modules = Object.fromEntries(
+    generatorModules.map((module) => {
+      const moduleDefaults = defaultConfig.modules[module.moduleId];
+      const current = config?.modules?.[module.moduleId];
+      return [
+        module.moduleId,
+        {
+          ...moduleDefaults,
+          ...current,
+          suggestions:
+            current?.suggestions && current.suggestions.length > 0
+              ? current.suggestions
+              : moduleDefaults.suggestions,
+          excelSubject:
+            current?.excelSubject?.trim() || moduleDefaults.excelSubject,
+          excelDestination:
+            current?.excelDestination?.trim() || moduleDefaults.excelDestination,
+          excelColumns: {
+            ...moduleDefaults.excelColumns,
+            ...current?.excelColumns,
+          },
+        },
+      ];
+    }),
+  );
 
   return {
     ...defaultConfig,
     ...config,
     modules: {
-      ...defaultConfig.modules,
-      ...config?.modules,
-      [LOST_FOUND_MODULE_ID]: {
-        ...defaultConfig.modules[LOST_FOUND_MODULE_ID],
-        ...lostFound,
-        suggestions:
-          lostFound?.suggestions && lostFound.suggestions.length > 0
-            ? lostFound.suggestions
-            : defaultSuggestions,
-      },
+      ...modules,
     },
   };
 }

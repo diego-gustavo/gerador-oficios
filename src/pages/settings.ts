@@ -1,15 +1,16 @@
 import type { AppContext } from "../app/context";
+import { MESSAGES, errorMessage } from "../app/messages";
 import { cloneConfig } from "../app/state";
 import { defaultConfig, defaultSuggestions, normalizeConfig } from "../config/defaults";
+import { generatorModules } from "../modules/registry";
 import { pickFile, pickFolder, saveConfig } from "../services/tauri";
-import { AppConfig, LOST_FOUND_MODULE_ID } from "../types";
+import { AppConfig, ExcelColumnMap, GeneratorModule } from "../types";
 import { button, field } from "../ui/components";
-import { bindInput, escapeHtml, query } from "../ui/dom";
+import { bindInput, escapeAttr, escapeHtml, query } from "../ui/dom";
 
 export function renderSettings(container: HTMLElement, context: AppContext) {
   const { state } = context;
   const draft = state.settingsDraft || cloneConfig(state.config);
-  const moduleConfig = draft.modules[LOST_FOUND_MODULE_ID];
 
   container.innerHTML = `
     <section class="page settings-page">
@@ -33,17 +34,7 @@ export function renderSettings(container: HTMLElement, context: AppContext) {
           </div>
         </section>
 
-        <section class="settings-section">
-          <h2>Modulo Achados e Perdidos</h2>
-          <div class="path-row">
-            ${field("Template Word", "cfg-template", moduleConfig.templatePath)}
-            ${button("Procurar", "folder-open", "pick-template")}
-          </div>
-          <label class="field" for="cfg-suggestions">
-            <span>Sugestoes</span>
-            <textarea id="cfg-suggestions" rows="8">${escapeHtml(moduleConfig.suggestions.join("\n"))}</textarea>
-          </label>
-        </section>
+        ${generatorModules.map((module) => renderModuleSettings(module, draft)).join("")}
 
         <section class="settings-section">
           <h2>Acessibilidade</h2>
@@ -86,6 +77,51 @@ export function renderSettings(container: HTMLElement, context: AppContext) {
   wireSettingsFields(container, context);
 }
 
+function renderModuleSettings(module: GeneratorModule, draft: AppConfig) {
+  const moduleConfig = draft.modules[module.moduleId];
+  const moduleId = escapeAttr(module.moduleId);
+
+  return `
+    <section class="settings-section">
+      <h2>Modulo ${escapeHtml(module.name)}</h2>
+      <div class="path-row">
+        ${field("Template Word", `cfg-template-${moduleId}`, moduleConfig.templatePath)}
+        ${button("Procurar", "folder-open", "pick-template", { id: module.moduleId })}
+      </div>
+      <div class="form-grid compact">
+        ${field("Assunto na planilha", `cfg-subject-${moduleId}`, moduleConfig.excelSubject)}
+        ${field("Destino na planilha", `cfg-destination-${moduleId}`, moduleConfig.excelDestination)}
+      </div>
+      <div class="form-grid column-grid">
+        ${renderColumnField(moduleId, "Numero", "number", moduleConfig.excelColumns)}
+        ${renderColumnField(moduleId, "Assunto", "subject", moduleConfig.excelColumns)}
+        ${renderColumnField(moduleId, "Data", "date", moduleConfig.excelColumns)}
+        ${renderColumnField(moduleId, "Destino", "destination", moduleConfig.excelColumns)}
+        ${renderColumnField(moduleId, "Responsavel", "responsible", moduleConfig.excelColumns)}
+      </div>
+      ${
+        module.usesSuggestions
+          ? `
+            <label class="field" for="cfg-suggestions-${moduleId}">
+              <span>Sugestoes</span>
+              <textarea id="cfg-suggestions-${moduleId}" rows="8">${escapeHtml(moduleConfig.suggestions.join("\n"))}</textarea>
+            </label>
+          `
+          : ""
+      }
+    </section>
+  `;
+}
+
+function renderColumnField(
+  moduleId: string,
+  label: string,
+  key: keyof ExcelColumnMap,
+  columns: ExcelColumnMap,
+) {
+  return field(`Coluna ${label}`, `cfg-column-${moduleId}-${key}`, columns[key]);
+}
+
 function updateSettings(context: AppContext, updater: (draft: AppConfig) => void) {
   const draft = context.state.settingsDraft || cloneConfig(context.state.config);
   updater(draft);
@@ -103,22 +139,53 @@ function wireSettingsFields(container: HTMLElement, context: AppContext) {
       draft.defaultSaveDir = value;
     });
   });
-  bindInput(container, "#cfg-template", (value) => {
-    updateSettings(context, (draft) => {
-      draft.modules[LOST_FOUND_MODULE_ID].templatePath = value;
+
+  generatorModules.forEach((module) => {
+    bindInput(container, `#cfg-template-${module.moduleId}`, (value) => {
+      updateSettings(context, (draft) => {
+        draft.modules[module.moduleId].templatePath = value;
+      });
     });
-  });
-  bindInput(container, "#cfg-suggestions", (value) => {
-    updateSettings(context, (draft) => {
-      const suggestions = value
-        .split(/\r?\n|,/)
-        .map((item) => item.trim())
-        .filter(Boolean);
-      draft.modules[LOST_FOUND_MODULE_ID].suggestions = suggestions.length
-        ? suggestions
-        : defaultSuggestions;
+    bindInput(container, `#cfg-subject-${module.moduleId}`, (value) => {
+      updateSettings(context, (draft) => {
+        draft.modules[module.moduleId].excelSubject = value;
+      });
     });
+    bindInput(container, `#cfg-destination-${module.moduleId}`, (value) => {
+      updateSettings(context, (draft) => {
+        draft.modules[module.moduleId].excelDestination = value;
+      });
+    });
+    (["number", "subject", "date", "destination", "responsible"] as const).forEach(
+      (columnKey) => {
+        bindInput(
+          container,
+          `#cfg-column-${module.moduleId}-${columnKey}`,
+          (value) => {
+            updateSettings(context, (draft) => {
+              draft.modules[module.moduleId].excelColumns[columnKey] =
+                value.trim().toUpperCase();
+            });
+          },
+        );
+      },
+    );
+
+    if (module.usesSuggestions) {
+      bindInput(container, `#cfg-suggestions-${module.moduleId}`, (value) => {
+        updateSettings(context, (draft) => {
+          const suggestions = value
+            .split(/\r?\n|,/)
+            .map((item) => item.trim())
+            .filter(Boolean);
+          draft.modules[module.moduleId].suggestions = suggestions.length
+            ? suggestions
+            : defaultSuggestions;
+        });
+      });
+    }
   });
+
   bindInput(container, "#cfg-theme", (value) => {
     updateSettings(context, (draft) => {
       draft.theme = value as AppConfig["theme"];
@@ -142,7 +209,7 @@ function wireSettingsFields(container: HTMLElement, context: AppContext) {
       if (action === "pick-excel") {
         void pickConfigPath(context, "excel");
       } else if (action === "pick-template") {
-        void pickConfigPath(context, "template");
+        void pickConfigPath(context, "template", item.dataset.id || "");
       } else if (action === "pick-save-dir") {
         void pickConfigPath(context, "save-dir");
       } else if (action === "save-config") {
@@ -157,6 +224,7 @@ function wireSettingsFields(container: HTMLElement, context: AppContext) {
 async function pickConfigPath(
   context: AppContext,
   target: "excel" | "template" | "save-dir",
+  moduleId = "",
 ) {
   const path = target === "save-dir" ? await pickFolder() : await pickFile();
   if (!path) {
@@ -166,8 +234,8 @@ async function pickConfigPath(
   updateSettings(context, (draft) => {
     if (target === "excel") {
       draft.excelPath = path;
-    } else if (target === "template") {
-      draft.modules[LOST_FOUND_MODULE_ID].templatePath = path;
+    } else if (target === "template" && moduleId) {
+      draft.modules[moduleId].templatePath = path;
     } else {
       draft.defaultSaveDir = path;
     }
@@ -182,19 +250,20 @@ async function handleSaveConfig(context: AppContext) {
     const saved = await saveConfig(draft);
     state.config = normalizeConfig(saved);
     state.settingsDraft = cloneConfig(state.config);
+    state.nextOfficioCache = {};
     context.applyAppearance();
-    context.showToast({ tone: "success", message: "Configuracoes salvas." });
+    context.showToast({ tone: "success", message: MESSAGES.settingsSaved });
     context.renderApp();
   } catch (error) {
     context.showToast({
       tone: "danger",
-      message: error instanceof Error ? error.message : "Falha ao salvar configuracoes.",
+      message: errorMessage(error, MESSAGES.settingsSaveFailed),
     });
   }
 }
 
 async function handleResetConfig(context: AppContext) {
-  if (!window.confirm("Restaurar todas as configuracoes para o padrao?")) {
+  if (!window.confirm(MESSAGES.confirmResetSettings)) {
     return;
   }
 
@@ -203,14 +272,14 @@ async function handleResetConfig(context: AppContext) {
     const saved = await saveConfig(normalizeConfig(defaultConfig));
     state.config = normalizeConfig(saved);
     state.settingsDraft = cloneConfig(state.config);
+    state.nextOfficioCache = {};
     context.applyAppearance();
-    context.showToast({ tone: "success", message: "Configuracoes restauradas." });
+    context.showToast({ tone: "success", message: MESSAGES.settingsRestored });
     context.renderApp();
   } catch (error) {
     context.showToast({
       tone: "danger",
-      message:
-        error instanceof Error ? error.message : "Falha ao restaurar configuracoes.",
+      message: errorMessage(error, MESSAGES.settingsRestoreFailed),
     });
   }
 }

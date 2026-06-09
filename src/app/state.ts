@@ -24,12 +24,19 @@ export interface LostFoundState extends LostFoundDraftPayload {
   observacao: string;
 }
 
+export interface NextOfficioCacheEntry {
+  value: string;
+  loadedAt: number;
+}
+
 export interface AppState {
   config: AppConfig;
   drafts: ModuleDraft[];
   draftsFilter: string;
+  draftsSearch: string;
   draftsLoading: boolean;
   lostFound: LostFoundState;
+  nextOfficioCache: Record<string, NextOfficioCacheEntry>;
   renameDraftId: string | null;
   renameValue: string;
   route: AppRoute;
@@ -64,8 +71,10 @@ export function createInitialState(route: AppRoute): AppState {
     config: defaultConfig,
     drafts: [],
     draftsFilter: LOST_FOUND_MODULE_ID,
+    draftsSearch: "",
     draftsLoading: false,
     lostFound: createLostFoundState(),
+    nextOfficioCache: {},
     renameDraftId: null,
     renameValue: "",
     route,

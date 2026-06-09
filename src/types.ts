@@ -9,9 +9,20 @@ export type AppRoute =
 
 export type ThemePreference = "light" | "dark" | "system";
 
+export interface ExcelColumnMap {
+  number: string;
+  subject: string;
+  date: string;
+  destination: string;
+  responsible: string;
+}
+
 export interface ModuleConfig {
   templatePath: string;
   suggestions: string[];
+  excelSubject: string;
+  excelDestination: string;
+  excelColumns: ExcelColumnMap;
 }
 
 export interface AppConfig {
@@ -29,7 +40,17 @@ export interface GeneratorModule {
   shortName: string;
   route: AppRoute;
   description: string;
+  iconName: string;
+  defaultDraftName: string;
+  defaultTemplatePath: string;
+  usesSuggestions: boolean;
   templateTags: string[];
+  excel: {
+    subject: string;
+    destination: string;
+    columns: ExcelColumnMap;
+  };
+  helpSteps: string[];
 }
 
 export interface ModuleDraft<TPayload = unknown> {

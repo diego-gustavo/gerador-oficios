@@ -25,10 +25,7 @@ function renderModuleHelpCard(module: (typeof generatorModules)[number]) {
       <h2>${icon("file-text")} ${escapeHtml(module.name)}</h2>
       <p>${escapeHtml(module.description)}</p>
       <ol>
-        <li>Confira ano, numero e data do oficio.</li>
-        <li>Preencha responsavel e itens no formato Item "Marca" - Descricao (Observacao).</li>
-        <li>Use rascunhos para salvar uma emissao em andamento.</li>
-        <li>Gere o documento e registre a emissao na planilha configurada.</li>
+        ${module.helpSteps.map((step) => `<li>${escapeHtml(step)}</li>`).join("")}
       </ol>
       <p>Tags do template: ${module.templateTags.map((tag) => escapeHtml(tag)).join(", ")}.</p>
     </section>

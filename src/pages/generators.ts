@@ -18,7 +18,7 @@ export function renderGenerators(container: HTMLElement, context: AppContext) {
           .map(
             (module) => `
               <button type="button" class="module-card" data-open-module="${escapeAttr(module.route)}">
-                <span class="module-icon">${icon("file-text")}</span>
+                <span class="module-icon">${icon(module.iconName)}</span>
                 <strong>${escapeHtml(module.name)}</strong>
                 <small>${escapeHtml(module.description)}</small>
                 <span class="module-open">Abrir ${icon("arrow-right")}</span>

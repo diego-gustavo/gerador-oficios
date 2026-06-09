@@ -17,9 +17,22 @@ const LOST_FOUND_MODULE_ID: &str = "achados-e-perdidos";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct ExcelColumnMap {
+    pub number: Option<String>,
+    pub subject: Option<String>,
+    pub date: Option<String>,
+    pub destination: Option<String>,
+    pub responsible: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ModuleConfig {
     pub template_path: String,
     pub suggestions: Vec<String>,
+    pub excel_subject: Option<String>,
+    pub excel_destination: Option<String>,
+    pub excel_columns: Option<ExcelColumnMap>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -113,6 +126,15 @@ fn default_config(app: &AppHandle) -> AppConfig {
         ModuleConfig {
             template_path: default_template_path(app),
             suggestions: default_suggestions(),
+            excel_subject: Some("Encaminhamento de Achados e Perdidos".to_string()),
+            excel_destination: Some("Urbes".to_string()),
+            excel_columns: Some(ExcelColumnMap {
+                number: Some("A".to_string()),
+                subject: Some("B".to_string()),
+                date: Some("C".to_string()),
+                destination: Some("D".to_string()),
+                responsible: Some("E".to_string()),
+            }),
         },
     );
 
@@ -149,6 +171,15 @@ fn merge_config(app: &AppHandle, mut config: AppConfig) -> AppConfig {
                 }
                 if module.suggestions.is_empty() {
                     module.suggestions = module_defaults.suggestions.clone();
+                }
+                if module.excel_subject.as_deref().unwrap_or("").trim().is_empty() {
+                    module.excel_subject = module_defaults.excel_subject.clone();
+                }
+                if module.excel_destination.as_deref().unwrap_or("").trim().is_empty() {
+                    module.excel_destination = module_defaults.excel_destination.clone();
+                }
+                if module.excel_columns.is_none() {
+                    module.excel_columns = module_defaults.excel_columns.clone();
                 }
             })
             .or_insert(module_defaults);
@@ -505,6 +536,35 @@ fn ensure_docx_extension(value: &str) -> String {
     }
 }
 
+fn backup_excel_file(path: &Path) -> Result<(), String> {
+    let parent = path
+        .parent()
+        .ok_or_else(|| "Nao foi possivel localizar a pasta da planilha.".to_string())?;
+    let file_name = path
+        .file_name()
+        .and_then(|value| value.to_str())
+        .ok_or_else(|| "Nome da planilha invalido para backup.".to_string())?;
+    let backup_dir = parent.join(".backups");
+    fs::create_dir_all(&backup_dir)
+        .map_err(|err| format!("Nao foi possivel criar a pasta de backup: {}", err))?;
+
+    let stamp = Local::now().format("%Y%m%d-%H%M%S");
+    let backup_path = backup_dir.join(format!("{}-{}", stamp, file_name));
+    fs::copy(path, backup_path)
+        .map(|_| ())
+        .map_err(|err| format!("Nao foi possivel criar backup da planilha: {}", err))
+}
+
+fn excel_column(value: Option<&String>, fallback: &str) -> String {
+    let raw = value.map(|value| value.trim()).unwrap_or("");
+    let valid = !raw.is_empty() && raw.chars().all(|ch| ch.is_ascii_alphabetic());
+    if valid {
+        raw.to_uppercase()
+    } else {
+        fallback.to_string()
+    }
+}
+
 fn save_filename(payload: &LostFoundGeneratePayload) -> Result<String, String> {
     if let Some(document_name) = payload
         .document_name
@@ -585,6 +645,7 @@ fn get_default_save_filename(payload: LostFoundGeneratePayload) -> Result<String
 fn get_next_officio(app: AppHandle, module_id: String, year: i32) -> Result<String, String> {
     sanitize_module_id(&module_id)?;
     let config = read_config(&app)?;
+    let module = module_config(&config, &module_id)?;
     let excel_path = config.excel_path.trim();
     if excel_path.is_empty() {
         return Ok(format!("1/{}", year));
@@ -645,6 +706,7 @@ fn append_excel_row(
     let sheet_name = find_sheet_by_year(excel_path, payload.year)?;
     let new_row = last_row_in_first_column(excel_path, &sheet_name)? + 1;
     let path = PathBuf::from(excel_path);
+    backup_excel_file(&path)?;
     let mut workbook = umya_spreadsheet::reader::xlsx::read(&path).map_err(|err| {
         format!(
             "Não foi possível abrir a planilha. Feche o arquivo se ele estiver aberto e tente novamente. Detalhes: {}",
@@ -656,20 +718,41 @@ fn append_excel_row(
         .get_sheet_by_name_mut(&sheet_name)
         .ok_or_else(|| "Aba da planilha não encontrada para escrita.".to_string())?;
 
+    let columns = module.excel_columns.as_ref();
+    let number_column = excel_column(columns.and_then(|value| value.number.as_ref()), "A");
+    let subject_column = excel_column(columns.and_then(|value| value.subject.as_ref()), "B");
+    let date_column = excel_column(columns.and_then(|value| value.date.as_ref()), "C");
+    let destination_column =
+        excel_column(columns.and_then(|value| value.destination.as_ref()), "D");
+    let responsible_column =
+        excel_column(columns.and_then(|value| value.responsible.as_ref()), "E");
+
     sheet
-        .get_cell_mut(format!("A{}", new_row).as_str())
+        .get_cell_mut(format!("{}{}", number_column, new_row).as_str())
         .set_value(&payload.officio_number);
     sheet
-        .get_cell_mut(format!("B{}", new_row).as_str())
-        .set_value("Encaminhamento de Achados e Perdidos");
+        .get_cell_mut(format!("{}{}", subject_column, new_row).as_str())
+        .set_value(
+            module
+                .excel_subject
+                .as_deref()
+                .filter(|value| !value.trim().is_empty())
+                .unwrap_or("Encaminhamento de Achados e Perdidos"),
+        );
     sheet
-        .get_cell_mut(format!("C{}", new_row).as_str())
+        .get_cell_mut(format!("{}{}", date_column, new_row).as_str())
         .set_value(date.format("%d/%m/%Y").to_string());
     sheet
-        .get_cell_mut(format!("D{}", new_row).as_str())
-        .set_value("Urbes");
+        .get_cell_mut(format!("{}{}", destination_column, new_row).as_str())
+        .set_value(
+            module
+                .excel_destination
+                .as_deref()
+                .filter(|value| !value.trim().is_empty())
+                .unwrap_or("Urbes"),
+        );
     sheet
-        .get_cell_mut(format!("E{}", new_row).as_str())
+        .get_cell_mut(format!("{}{}", responsible_column, new_row).as_str())
         .set_value(payload.responsible.trim());
 
     umya_spreadsheet::writer::xlsx::write(&workbook, &path).map_err(|err| {

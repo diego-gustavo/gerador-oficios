@@ -1,13 +1,15 @@
 import type { AppContext } from "../app/context";
+import { measureAsync } from "../app/logger";
+import { MESSAGES, errorMessage } from "../app/messages";
 import { createLostFoundState } from "../app/state";
 import {
   brDateToIso,
   defaultLostFoundDocumentName,
   formatLostFoundItem,
-  isValidBrDate,
   isoDateToBr,
   makeItemId,
 } from "../modules/lost-found/format";
+import { validateLostFoundPayload } from "../modules/lost-found/module";
 import {
   appendExcelRow,
   generateDocument,
@@ -26,6 +28,8 @@ import {
 import { button, emptyState, field } from "../ui/components";
 import { bindInput, escapeAttr, escapeHtml, query } from "../ui/dom";
 import { icon } from "../ui/icons";
+import { debounce } from "../ui/timing";
+import { renderGeneratorPage } from "./generator-shell";
 
 export function renderLostFound(container: HTMLElement, context: AppContext) {
   const { state } = context;
@@ -57,16 +61,7 @@ export function renderLostFound(container: HTMLElement, context: AppContext) {
         "Informe item, marca, descricao e observacao quando houver.",
       );
 
-  container.innerHTML = `
-    <section class="page generator-page">
-      <div class="page-main">
-        <div class="section-title">
-          <div>
-            <h1>Achados e Perdidos</h1>
-            <span>Encaminhamento de itens localizados.</span>
-          </div>
-        </div>
-
+  const content = `
         <div class="toolbar">
           <div class="year-control" aria-label="Ano do oficio">
             <button type="button" data-action="year-down">-</button>
@@ -130,21 +125,22 @@ export function renderLostFound(container: HTMLElement, context: AppContext) {
           </div>
           <div class="items-list">${itemRows}</div>
         </div>
-
-        <footer class="action-bar" aria-label="Acoes do gerador">
-          <div class="action-group">
-            ${button("Salvar rascunho", "save", "save-draft", { disabled: lostFound.busy })}
-            ${button("Carregar rascunho", "folder-open", "open-drafts", { disabled: lostFound.busy })}
-            ${button("Limpar itens", "eraser", "clear-items", { disabled: !canClear })}
-          </div>
-          ${button("Gerar oficio", "file-plus-2", "generate", {
-            variant: "primary",
-            disabled: lostFound.busy,
-          })}
-        </footer>
-      </div>
-    </section>
   `;
+
+  container.innerHTML = renderGeneratorPage({
+    title: "Achados e Perdidos",
+    subtitle: "Encaminhamento de itens localizados.",
+    content,
+    secondaryActions: `
+      ${button("Salvar rascunho", "save", "save-draft", { disabled: lostFound.busy })}
+      ${button("Carregar rascunho", "folder-open", "open-drafts", { disabled: lostFound.busy })}
+      ${button("Limpar itens", "eraser", "clear-items", { disabled: !canClear })}
+    `,
+    primaryAction: button("Gerar oficio", "file-plus-2", "generate", {
+      variant: "primary",
+      disabled: lostFound.busy,
+    }),
+  });
 
   bindInput(container, "#lf-date", (value) => {
     state.lostFound.officioDate = value;
@@ -182,23 +178,42 @@ export function renderLostFound(container: HTMLElement, context: AppContext) {
   wireLostFoundActions(container, context);
 }
 
-export async function refreshNextOfficio(context: AppContext) {
+export async function refreshNextOfficio(
+  context: AppContext,
+  options: { force?: boolean } = {},
+) {
   const { state } = context;
   const lostFound = state.lostFound;
   const year = lostFound.year;
+  const cacheKey = nextOfficioCacheKey(context, year);
+  const cached = state.nextOfficioCache[cacheKey];
+
+  if (!options.force && cached) {
+    lostFound.officioNumber = cached.value;
+    syncDocumentName(context);
+    context.renderApp();
+    return;
+  }
+
   lostFound.loadingNumber = true;
   context.renderApp();
 
   try {
-    const next = await getNextOfficio(LOST_FOUND_MODULE_ID, year);
+    const next = await measureAsync("get_next_officio", () =>
+      getNextOfficio(LOST_FOUND_MODULE_ID, year),
+    );
     if (state.lostFound.year === year) {
       state.lostFound.officioNumber = next;
+      state.nextOfficioCache[cacheKey] = {
+        value: next,
+        loadedAt: Date.now(),
+      };
       syncDocumentName(context);
     }
   } catch (error) {
     context.showToast({
       tone: "warning",
-      message: error instanceof Error ? error.message : "Numero nao carregado.",
+      message: errorMessage(error, MESSAGES.numberNotLoaded),
     });
   } finally {
     if (state.lostFound.year === year) {
@@ -224,6 +239,18 @@ export function applyLostFoundDraft(
   if (!context.state.lostFound.documentName) {
     syncDocumentName(context);
   }
+}
+
+function nextOfficioCacheKey(context: AppContext, year: number) {
+  return [
+    LOST_FOUND_MODULE_ID,
+    context.state.config.excelPath.trim(),
+    year,
+  ].join("|");
+}
+
+function invalidateNextOfficioCache(context: AppContext) {
+  context.state.nextOfficioCache = {};
 }
 
 function wireLostFoundSuggestions(container: HTMLElement, context: AppContext) {
@@ -260,10 +287,11 @@ function wireLostFoundSuggestions(container: HTMLElement, context: AppContext) {
       panel.append(option);
     });
   }
+  const renderSuggestionsDebounced = debounce(renderSuggestions, 90);
 
   input.addEventListener("input", () => {
     state.lostFound.itemName = input.value;
-    renderSuggestions();
+    renderSuggestionsDebounced();
   });
   input.addEventListener("focus", renderSuggestions);
   input.addEventListener("keydown", (event) => {
@@ -344,7 +372,7 @@ function wireLostFoundActions(container: HTMLElement, context: AppContext) {
         syncDocumentName(context);
         void refreshNextOfficio(context);
       } else if (action === "refresh-number") {
-        void refreshNextOfficio(context);
+        void refreshNextOfficio(context, { force: true });
       } else if (action === "pick-date") {
         openNativeDatePicker(container, context);
       } else if (action === "toggle-document-name-lock") {
@@ -374,7 +402,7 @@ function addOrUpdateItem(context: AppContext) {
   const lostFound = state.lostFound;
   const itemName = lostFound.itemName.trim();
   if (!itemName) {
-    context.showToast({ tone: "warning", message: "Informe o item." });
+    context.showToast({ tone: "warning", message: MESSAGES.itemRequired });
     query<HTMLInputElement>("#lf-item").focus();
     return;
   }
@@ -427,7 +455,7 @@ function clearItems(context: AppContext) {
   if (!context.state.lostFound.items.length) {
     return;
   }
-  if (!window.confirm("Limpar todos os itens adicionados?")) {
+  if (!window.confirm(MESSAGES.confirmClearItems)) {
     return;
   }
   context.state.lostFound.items = [];
@@ -464,29 +492,10 @@ function buildLostFoundDraftPayload(context: AppContext): LostFoundDraftPayload 
   };
 }
 
-function validateLostFound(payload: LostFoundGeneratePayload) {
-  if (!/^\d+\/\d{4}$/.test(payload.officioNumber)) {
-    return "Numero do oficio invalido.";
-  }
-  if (!isValidBrDate(payload.officioDate)) {
-    return "Data invalida. Use dd/mm/aaaa.";
-  }
-  if (!payload.documentName.trim()) {
-    return "Informe o nome do oficio.";
-  }
-  if (!payload.responsible) {
-    return "Informe o responsavel.";
-  }
-  if (payload.items.length === 0) {
-    return "Adicione pelo menos um item.";
-  }
-  return null;
-}
-
 async function handleSaveDraft(context: AppContext) {
   const { state } = context;
   if (!state.lostFound.items.length) {
-    context.showToast({ tone: "info", message: "Nenhum item adicionado." });
+    context.showToast({ tone: "info", message: MESSAGES.noItems });
     return;
   }
 
@@ -503,11 +512,11 @@ async function handleSaveDraft(context: AppContext) {
 
     state.lostFound.currentDraftId = saved.draftId;
     state.lostFound.draftName = saved.name;
-    context.showToast({ tone: "success", message: "Rascunho salvo." });
+    context.showToast({ tone: "success", message: MESSAGES.draftSaved });
   } catch (error) {
     context.showToast({
       tone: "danger",
-      message: error instanceof Error ? error.message : "Falha ao salvar rascunho.",
+      message: errorMessage(error, MESSAGES.draftSaveFailed),
     });
   } finally {
     state.lostFound.busy = false;
@@ -518,7 +527,7 @@ async function handleSaveDraft(context: AppContext) {
 async function handleGenerate(context: AppContext) {
   const { state } = context;
   const payload = buildLostFoundPayload(context);
-  const validation = validateLostFound(payload);
+  const validation = validateLostFoundPayload(payload);
   if (validation) {
     context.showToast({ tone: "warning", message: validation });
     return;
@@ -531,13 +540,18 @@ async function handleGenerate(context: AppContext) {
     const defaultFileName = await getDefaultSaveFilename(payload);
     const savePath = await pickSaveFile(defaultFileName, state.config.defaultSaveDir);
     if (!savePath) {
-      context.showToast({ tone: "info", message: "Geracao cancelada." });
+      context.showToast({ tone: "info", message: MESSAGES.generationCanceled });
       return;
     }
 
-    const generated = await generateDocument(LOST_FOUND_MODULE_ID, payload, savePath);
-    await appendExcelRow(LOST_FOUND_MODULE_ID, payload);
+    const generated = await measureAsync("generate_document", () =>
+      generateDocument(LOST_FOUND_MODULE_ID, payload, savePath),
+    );
+    await measureAsync("append_excel_row", () =>
+      appendExcelRow(LOST_FOUND_MODULE_ID, payload),
+    );
 
+    invalidateNextOfficioCache(context);
     state.lostFound.items = [];
     state.lostFound.responsible = "";
     state.lostFound.documentNameLocked = true;
@@ -553,7 +567,7 @@ async function handleGenerate(context: AppContext) {
   } catch (error) {
     context.showToast({
       tone: "danger",
-      message: error instanceof Error ? error.message : "Falha na geracao.",
+      message: errorMessage(error, MESSAGES.generationFailed),
     });
   } finally {
     state.lostFound.busy = false;

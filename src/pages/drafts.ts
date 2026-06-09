@@ -1,4 +1,5 @@
 import type { AppContext } from "../app/context";
+import { MESSAGES, errorMessage } from "../app/messages";
 import { generatorModules } from "../modules/registry";
 import {
   deleteDraft,
@@ -10,14 +11,16 @@ import { LostFoundDraftPayload, ModuleDraft } from "../types";
 import { button, emptyState } from "../ui/components";
 import { bindInput, escapeAttr, escapeHtml } from "../ui/dom";
 import { icon } from "../ui/icons";
+import { debounce } from "../ui/timing";
 import { applyLostFoundDraft } from "./lost-found";
 
 export function renderDrafts(container: HTMLElement, context: AppContext) {
   const { state } = context;
-  const rows = state.drafts.length
-    ? state.drafts.map((draft) => renderDraftRow(draft, context)).join("")
+  const visibleDrafts = filterDrafts(state.drafts, state.draftsSearch);
+  const rows = visibleDrafts.length
+    ? visibleDrafts.map((draft) => renderDraftRow(draft, context)).join("")
     : emptyState(
-        state.draftsLoading ? "Carregando rascunhos" : "Nenhum rascunho neste modulo",
+        state.draftsLoading ? "Carregando rascunhos" : "Nenhum rascunho encontrado",
       );
 
   container.innerHTML = `
@@ -41,12 +44,16 @@ export function renderDrafts(container: HTMLElement, context: AppContext) {
               .join("")}
           </select>
         </label>
+        <label class="field draft-search" for="draft-search">
+          <span>Buscar</span>
+          <input id="draft-search" value="${escapeAttr(state.draftsSearch)}" placeholder="Nome do rascunho" />
+        </label>
       </div>
 
       <div class="list-panel fill">
         <div class="list-header">
           <strong>${icon("archive")} Arquivos salvos</strong>
-          <span>${state.draftsLoading ? "..." : state.drafts.length}</span>
+          <span>${state.draftsLoading ? "..." : visibleDrafts.length}</span>
         </div>
         <div class="draft-list">${rows}</div>
       </div>
@@ -55,8 +62,16 @@ export function renderDrafts(container: HTMLElement, context: AppContext) {
 
   bindInput(container, "#draft-filter", (value) => {
     state.draftsFilter = value;
+    state.draftsSearch = "";
     void refreshDrafts(context);
   });
+
+  const searchInput = container.querySelector<HTMLInputElement>("#draft-search");
+  const applySearch = debounce((value: string) => {
+    state.draftsSearch = value;
+    context.renderApp();
+  }, 120);
+  searchInput?.addEventListener("input", () => applySearch(searchInput.value));
 
   container.querySelectorAll<HTMLButtonElement>("[data-action]").forEach((item) => {
     item.addEventListener("click", () => {
@@ -97,12 +112,20 @@ export async function refreshDrafts(context: AppContext) {
   } catch (error) {
     context.showToast({
       tone: "danger",
-      message: error instanceof Error ? error.message : "Falha ao listar rascunhos.",
+      message: errorMessage(error, MESSAGES.draftsListFailed),
     });
   } finally {
     state.draftsLoading = false;
     context.renderApp();
   }
+}
+
+function filterDrafts(drafts: ModuleDraft[], search: string) {
+  const needle = search.trim().toLowerCase();
+  if (!needle) {
+    return drafts;
+  }
+  return drafts.filter((draft) => draft.name.toLowerCase().includes(needle));
 }
 
 function renderDraftRow(draft: ModuleDraft, context: AppContext) {
@@ -146,11 +169,11 @@ async function openDraft(context: AppContext, draftId: string) {
     const loaded = await loadDraft<LostFoundDraftPayload>(draft.moduleId, draft.draftId);
     applyLostFoundDraft(context, loaded);
     context.navigate("lost-found");
-    context.showToast({ tone: "success", message: "Rascunho carregado." });
+    context.showToast({ tone: "success", message: MESSAGES.draftLoaded });
   } catch (error) {
     context.showToast({
       tone: "danger",
-      message: error instanceof Error ? error.message : "Falha ao carregar rascunho.",
+      message: errorMessage(error, MESSAGES.draftLoadFailed),
     });
   }
 }
@@ -166,12 +189,12 @@ async function removeDraft(context: AppContext, draftId: string) {
 
   try {
     await deleteDraft(draft.moduleId, draft.draftId);
-    context.showToast({ tone: "success", message: "Rascunho excluido." });
+    context.showToast({ tone: "success", message: MESSAGES.draftDeleted });
     await refreshDrafts(context);
   } catch (error) {
     context.showToast({
       tone: "danger",
-      message: error instanceof Error ? error.message : "Falha ao excluir rascunho.",
+      message: errorMessage(error, MESSAGES.draftDeleteFailed),
     });
   }
 }
@@ -190,12 +213,12 @@ async function commitRename(context: AppContext, draftId: string) {
     });
     state.renameDraftId = null;
     state.renameValue = "";
-    context.showToast({ tone: "success", message: "Rascunho renomeado." });
+    context.showToast({ tone: "success", message: MESSAGES.draftRenamed });
     await refreshDrafts(context);
   } catch (error) {
     context.showToast({
       tone: "danger",
-      message: error instanceof Error ? error.message : "Falha ao renomear.",
+      message: errorMessage(error, MESSAGES.draftRenameFailed),
     });
   }
 }

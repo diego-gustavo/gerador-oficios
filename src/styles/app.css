@@ -382,6 +382,10 @@ p {
   align-items: end;
 }
 
+.column-grid {
+  grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+}
+
 .field,
 .select-field,
 .combo-field {
@@ -604,6 +608,10 @@ p {
 .draft-main span {
   color: var(--muted);
   font-size: 0.84rem;
+}
+
+.draft-search {
+  min-width: min(260px, 100%);
 }
 
 .empty-state {

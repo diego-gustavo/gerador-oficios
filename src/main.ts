@@ -117,7 +117,7 @@ function renderApp() {
       <main class="workspace">
         <header class="topbar">
           <div class="topbar-title">${icon("panel-top")}<span>${escapeHtml(routeTitle[state.route])}</span></div>
-          <div id="toast-slot"></div>
+          <div id="toast-slot" role="status" aria-live="polite"></div>
         </header>
         <div class="page-frame" id="page"></div>
       </main>
