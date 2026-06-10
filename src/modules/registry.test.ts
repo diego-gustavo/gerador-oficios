@@ -3,6 +3,7 @@ import { lostFoundFixture } from "./lost-found/fixtures";
 import { defaultLostFoundDocumentName } from "./lost-found/format";
 import { generatorModules, getModule } from "./registry";
 
+// Fixtures funcionam como contrato mínimo entre registro, template e payload.
 const moduleFixtures = [lostFoundFixture];
 
 describe("generator module registry", () => {

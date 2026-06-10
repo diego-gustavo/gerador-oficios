@@ -12,6 +12,7 @@ import {
   ToastState,
 } from "../types";
 
+// Estado específico do gerador de Achados e Perdidos, incluindo campos de UI.
 export interface LostFoundState extends LostFoundDraftPayload {
   busy: boolean;
   currentDraftId?: string;
@@ -29,6 +30,7 @@ export interface NextOfficioCacheEntry {
   loadedAt: number;
 }
 
+// Estado global do frontend. Cada página usa um recorte, mas tudo vive aqui.
 export interface AppState {
   config: AppConfig;
   drafts: ModuleDraft[];
@@ -45,6 +47,7 @@ export interface AppState {
 }
 
 export function createLostFoundState(): LostFoundState {
+  // O nome do documento nasce bloqueado para seguir o padrão operacional.
   const year = new Date().getFullYear();
   const officioNumber = `1/${year}`;
   return {
@@ -67,6 +70,7 @@ export function createLostFoundState(): LostFoundState {
 }
 
 export function createInitialState(route: AppRoute): AppState {
+  // Defaults permitem abrir o app no navegador mesmo sem backend Tauri.
   return {
     config: defaultConfig,
     drafts: [],
@@ -84,5 +88,6 @@ export function createInitialState(route: AppRoute): AppState {
 }
 
 export function cloneConfig(config: AppConfig): AppConfig {
+  // JSON clone basta porque AppConfig é dado puro.
   return normalizeConfig(JSON.parse(JSON.stringify(config)) as AppConfig);
 }

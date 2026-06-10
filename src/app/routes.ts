@@ -1,5 +1,6 @@
 import type { AppRoute } from "../types";
 
+// Rotas públicas do hash para manter navegação simples dentro do Tauri/WebView.
 export const routeByHash: Record<string, AppRoute> = {
   "#geradores": "generators",
   "#achados-e-perdidos": "lost-found",

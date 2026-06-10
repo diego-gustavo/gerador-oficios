@@ -1,3 +1,5 @@
+//! Backend Tauri: persiste configuração/rascunhos, gera DOCX e registra Excel.
+
 use calamine::{open_workbook_auto, Data, Reader};
 use chrono::{Datelike, Local, NaiveDate};
 use regex::Regex;
@@ -94,6 +96,7 @@ pub struct GeneratedDocument {
 }
 
 fn default_suggestions() -> Vec<String> {
+    // Mesma lista inicial do frontend para manter fallback nativo consistente.
     [
         "Vale Transporte",
         "RG",
@@ -162,6 +165,8 @@ fn default_config(app: &AppHandle) -> AppConfig {
 }
 
 fn merge_config(app: &AppHandle, mut config: AppConfig) -> AppConfig {
+    // Config salva pode vir de versões antigas; merge preserva valor do usuário
+    // e completa só o que faltar.
     let defaults = default_config(app);
 
     // Compatibilidade: versões antigas salvavam os caminhos no topo da config.
@@ -270,6 +275,7 @@ fn drafts_root(app: &AppHandle, module_id: &str) -> Result<PathBuf, String> {
 }
 
 fn sanitize_module_id(module_id: &str) -> Result<String, String> {
+    // IDs viram nomes de pasta; por isso restringimos a caracteres seguros.
     let valid = module_id
         .chars()
         .all(|ch| ch.is_ascii_alphanumeric() || ch == '-' || ch == '_');
@@ -302,6 +308,7 @@ fn cell_to_string(cell: Option<&Data>) -> String {
 }
 
 fn find_sheet_by_year(path: &str, year: i32) -> Result<String, String> {
+    // A planilha operacional usa uma aba por ano com "Ofícios Emitidos" no nome.
     if !Path::new(path).exists() {
         return Err("Planilha Excel não encontrada.".to_string());
     }
@@ -318,6 +325,7 @@ fn find_sheet_by_year(path: &str, year: i32) -> Result<String, String> {
 }
 
 fn next_number_from_sheet(path: &str, sheet_name: &str, year: i32) -> Result<String, String> {
+    // Percorre a primeira coluna e escolhe o próximo número do maior n/ano.
     let mut workbook = open_workbook_auto(path).map_err(|err| err.to_string())?;
     let range = workbook
         .worksheet_range(sheet_name)
@@ -428,6 +436,7 @@ fn escape_xml(value: &str) -> String {
 }
 
 fn normalize_split_placeholder(xml: &str, tag: &str) -> Result<String, String> {
+    // Word pode quebrar tags em vários runs XML; esta regex junta de novo.
     let separator = r#"(?:\s*<[^>]+>\s*)*"#;
     let mut pattern = String::new();
 
@@ -453,6 +462,7 @@ fn normalize_docx_placeholders(xml: &str) -> Result<String, String> {
 }
 
 fn list_xml(items: &[LostFoundItem], paragraph_properties: Option<&str>) -> String {
+    // Se o template usa numeração do Word, preservamos o estilo da lista.
     let uses_word_numbering = paragraph_properties
         .map(|properties| properties.contains("<w:numPr>"))
         .unwrap_or(false);
@@ -520,6 +530,7 @@ fn generate_docx_from_template(
     save_path: &Path,
     payload: &LostFoundGeneratePayload,
 ) -> Result<(), String> {
+    // DOCX é ZIP: editamos document/header/footer XML e copiamos o restante intacto.
     if !template_path.exists() {
         return Err("Template Word não encontrado.".to_string());
     }
@@ -616,6 +627,7 @@ fn ensure_docx_extension(value: &str) -> String {
 }
 
 fn backup_excel_file(path: &Path) -> Result<(), String> {
+    // Toda escrita de Excel gera backup local antes de alterar o arquivo original.
     let parent = path
         .parent()
         .ok_or_else(|| "Não foi possível localizar a pasta da planilha.".to_string())?;
@@ -725,6 +737,7 @@ fn append_excel_row_to_path(
     module: &ModuleConfig,
     payload: &LostFoundGeneratePayload,
 ) -> Result<(), String> {
+    // Lê com calamine para localizar a linha e escreve com umya-spreadsheet.
     let date = parse_date_br(&payload.officio_date)?;
     let sheet_name = find_sheet_by_year(excel_path, payload.year)?;
     let new_row = last_row_in_first_column(excel_path, &sheet_name)? + 1;
@@ -1179,6 +1192,7 @@ mod tests {
 }
 
 pub fn run() {
+    // Lista explícita de comandos expostos ao frontend via invoke().
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             load_config,

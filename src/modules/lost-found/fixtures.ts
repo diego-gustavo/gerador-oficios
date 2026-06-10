@@ -1,5 +1,6 @@
 import { LOST_FOUND_MODULE_ID, LostFoundGeneratePayload } from "../../types";
 
+// Fixture canônica: alinha testes de nome, tags e payload exemplo.
 export const lostFoundFixture = {
   moduleId: LOST_FOUND_MODULE_ID,
   expectedDocumentName: "2026 007 - Encaminhamento de Achados e Perdidos",

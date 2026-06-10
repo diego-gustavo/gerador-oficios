@@ -1,5 +1,6 @@
 import { LostFoundItem } from "../../types";
 
+// Helpers puros do módulo: fáceis de testar e compartilháveis com UI/backend.
 export function formatLostFoundItem(item: LostFoundItem) {
   const base = item.item.trim();
   const marca = item.marca?.trim();
@@ -17,6 +18,7 @@ export function formatLostFoundItem(item: LostFoundItem) {
 }
 
 export function defaultLostFoundDocumentName(year: number, officioNumber: string) {
+  // Nome padrão usa número com três dígitos para ordenar bem na pasta.
   const number = Number(officioNumber.split("/")[0] || "1");
   const paddedNumber = Number.isFinite(number)
     ? String(number).padStart(3, "0")
@@ -33,6 +35,7 @@ export function todayBrDate() {
 }
 
 export function isValidBrDate(value: string) {
+  // Regex valida forma; Date valida se o dia realmente existe.
   if (!/^\d{2}\/\d{2}\/\d{4}$/.test(value.trim())) {
     return false;
   }

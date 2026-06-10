@@ -1,76 +1,57 @@
+/* Visual próprio do app. React é a camada principal; não há Bootstrap/framework CSS. */
 :root {
   --ui-scale: 1;
-  --bg: #f4f6f8;
-  --panel: #ffffff;
-  --panel-soft: #eef2f5;
-  --text: #18202a;
-  --muted: #667085;
-  --line: #cfd7df;
-  --brand: #243b7a;
-  --brand-strong: #172b61;
-  --accent: #2f8f46;
-  --accent-strong: #247337;
-  --danger: #bd3b36;
-  --danger-soft: #ffe6e4;
-  --warning: #9a6b12;
-  --focus: #2563eb;
-  --radius: 8px;
-  color: var(--text);
-  background: var(--bg);
-  font-family:
-    Inter, "Segoe UI", Roboto, Arial, system-ui, -apple-system, BlinkMacSystemFont,
-    sans-serif;
+  --app-bg: #f4f6f8;
+  --app-panel: #ffffff;
+  --app-panel-soft: #eef2f5;
+  --app-text: #18202a;
+  --app-muted: #667085;
+  --app-line: #cfd7df;
+  --app-brand: #243b7a;
+  --app-brand-strong: #172b61;
+  --app-accent: #2f8f46;
+  --app-accent-strong: #247337;
+  --app-danger: #bd3b36;
+  --app-warning: #9a6b12;
+  --app-focus: #2563eb;
+  --app-font: Inter, "Segoe UI", Roboto, Arial, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --app-radius: 0.5rem;
+  --app-radius-pill: 999px;
+  --app-shadow: 0 12px 24px rgb(15 23 42 / 16%);
+  --app-white: #ffffff;
   font-size: calc(15px * var(--ui-scale));
   letter-spacing: 0;
+  color: var(--app-text);
+  background: var(--app-bg);
+  font-family: var(--app-font);
 }
 
 :root[data-theme="dark"] {
-  --bg: #15181d;
-  --panel: #1f242b;
-  --panel-soft: #252c35;
-  --text: #f1f5f9;
-  --muted: #a8b3c2;
-  --line: #3a4451;
-  --brand: #92a3ff;
-  --brand-strong: #bdc8ff;
-  --accent: #62c174;
-  --accent-strong: #72d686;
-  --danger: #ff7770;
-  --danger-soft: #3b2020;
-  --warning: #f2c14e;
-  --focus: #8ab4ff;
+  color-scheme: dark;
+  --app-bg: #15181d;
+  --app-panel: #1f242b;
+  --app-panel-soft: #252c35;
+  --app-text: #f1f5f9;
+  --app-muted: #a8b3c2;
+  --app-line: #3a4451;
+  --app-brand: #92a3ff;
+  --app-brand-strong: #bdc8ff;
+  --app-accent: #62c174;
+  --app-accent-strong: #72d686;
+  --app-warning: #f2c14e;
+  --app-focus: #8ab4ff;
 }
 
 :root[data-contrast="high"] {
-  --bg: #ffffff;
-  --panel: #ffffff;
-  --panel-soft: #f3f3f3;
-  --text: #000000;
-  --muted: #000000;
-  --line: #000000;
-  --brand: #000000;
-  --brand-strong: #000000;
-  --accent: #005a18;
-  --accent-strong: #004112;
-  --danger: #8b0000;
-  --danger-soft: #ffffff;
-  --focus: #000000;
-}
-
-:root[data-theme="dark"][data-contrast="high"] {
-  --bg: #000000;
-  --panel: #000000;
-  --panel-soft: #101010;
-  --text: #ffffff;
-  --muted: #ffffff;
-  --line: #ffffff;
-  --brand: #ffffff;
-  --brand-strong: #ffffff;
-  --accent: #ffffff;
-  --accent-strong: #ffffff;
-  --danger: #ffffff;
-  --danger-soft: #000000;
-  --focus: #ffffff;
+  --app-muted: var(--app-text);
+  --app-line: var(--app-text);
+  --app-brand: var(--app-text);
+  --app-brand-strong: var(--app-text);
+  --app-accent: var(--app-text);
+  --app-accent-strong: var(--app-text);
+  --app-danger: var(--app-text);
+  --app-warning: var(--app-text);
+  --app-focus: var(--app-text);
 }
 
 * {
@@ -81,7 +62,9 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background: var(--bg);
+  background: var(--app-bg);
+  color: var(--app-text);
+  font-family: var(--app-font);
 }
 
 button,
@@ -89,10 +72,6 @@ input,
 select,
 textarea {
   font: inherit;
-}
-
-button {
-  cursor: pointer;
 }
 
 button:disabled {
@@ -105,47 +84,15 @@ button:disabled {
   stroke-width: 2;
 }
 
-input,
-select,
-textarea {
-  width: 100%;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--panel);
-  color: var(--text);
-  min-height: 38px;
-  padding: 8px 10px;
-  outline: none;
-}
-
-textarea {
-  resize: vertical;
-  min-height: 120px;
-}
-
-input:focus,
-select:focus,
-textarea:focus,
-button:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
-}
-
-h1,
-h2,
-p {
-  margin: 0;
-}
-
 .app-shell {
   min-height: 100vh;
   display: grid;
-  grid-template-columns: 238px 1fr;
+  grid-template-columns: 238px minmax(0, 1fr);
 }
 
 .sidebar {
-  background: var(--panel);
-  border-right: 1px solid var(--line);
+  background: var(--app-panel);
+  border-right: 1px solid var(--app-line);
   padding: 18px 14px;
   display: flex;
   flex-direction: column;
@@ -183,14 +130,39 @@ p {
   line-height: 1.2;
 }
 
-.brand span {
-  color: var(--muted);
+.brand span,
+.section-title span,
+.number-pill span,
+.field span,
+.select-field span,
+.combo-field label,
+.draft-main span,
+.module-card small,
+.help-block p,
+.help-block li {
+  color: var(--app-muted);
+}
+
+.brand span,
+.field span,
+.select-field span,
+.combo-field label,
+.draft-main span {
   font-size: 0.86rem;
 }
 
 .nav-list {
   display: grid;
   gap: 6px;
+}
+
+.nav-button,
+.module-card,
+.icon-button,
+.field-icon-button,
+.year-control button,
+.suggestions button {
+  border-radius: var(--app-radius);
 }
 
 .nav-button {
@@ -200,20 +172,19 @@ p {
   min-height: 42px;
   padding: 9px 10px;
   border: 1px solid transparent;
-  border-radius: var(--radius);
   background: transparent;
-  color: var(--text);
+  color: var(--app-text);
   text-align: left;
 }
 
 .nav-button:hover,
 .nav-button.active {
-  background: var(--panel-soft);
-  border-color: var(--line);
+  background: var(--app-panel-soft);
+  border-color: var(--app-line);
 }
 
 .nav-button.active {
-  color: var(--brand-strong);
+  color: var(--app-brand-strong);
   font-weight: 700;
 }
 
@@ -224,8 +195,8 @@ p {
 }
 
 .topbar {
-  background: var(--panel);
-  border-bottom: 1px solid var(--line);
+  background: var(--app-panel);
+  border-bottom: 1px solid var(--app-line);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -237,33 +208,33 @@ p {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  color: var(--muted);
+  color: var(--app-muted);
   font-weight: 700;
 }
 
 .toast {
   max-width: min(560px, 58vw);
   padding: 8px 12px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--panel-soft);
-  color: var(--text);
+  border: 1px solid var(--app-line);
+  border-radius: var(--app-radius);
+  background: var(--app-panel-soft);
+  color: var(--app-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .toast.success {
-  border-color: var(--accent);
+  border-color: var(--app-accent);
 }
 
 .toast.warning {
-  color: var(--warning);
+  color: var(--app-warning);
 }
 
 .toast.danger {
-  color: var(--danger);
-  border-color: var(--danger);
+  color: var(--app-danger);
+  border-color: var(--app-danger);
 }
 
 .page-frame {
@@ -281,15 +252,18 @@ p {
   margin: 0 auto;
 }
 
-.page-grid {
+.page-main,
+.settings-sections,
+.draft-main,
+.items-list,
+.draft-list,
+.help-block,
+.settings-section {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 220px;
-  gap: 18px;
 }
 
 .page-main {
   min-width: 0;
-  display: grid;
   gap: 16px;
   align-content: start;
 }
@@ -305,11 +279,11 @@ p {
 .section-title h1 {
   font-size: 1.55rem;
   line-height: 1.2;
-  color: var(--brand-strong);
+  color: var(--app-brand-strong);
+  margin: 0;
 }
 
 .section-title span {
-  color: var(--muted);
   display: block;
   margin-top: 3px;
 }
@@ -319,11 +293,10 @@ p {
 .list-panel,
 .settings-section,
 .help-block,
-.action-rail,
 .action-bar {
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--panel);
+  border: 1px solid var(--app-line);
+  border-radius: var(--app-radius);
+  background: var(--app-panel);
 }
 
 .toolbar {
@@ -339,8 +312,8 @@ p {
   display: inline-grid;
   grid-template-columns: 34px minmax(62px, auto) 34px;
   align-items: center;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border: 1px solid var(--app-line);
+  border-radius: var(--app-radius);
   overflow: hidden;
   min-height: 38px;
 }
@@ -348,8 +321,8 @@ p {
 .year-control button {
   height: 38px;
   border: 0;
-  background: var(--panel-soft);
-  color: var(--text);
+  background: var(--app-panel-soft);
+  color: var(--app-text);
 }
 
 .year-control strong {
@@ -363,13 +336,9 @@ p {
   gap: 9px;
   min-height: 38px;
   padding: 7px 12px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--panel-soft);
-}
-
-.number-pill span {
-  color: var(--muted);
+  border: 1px solid var(--app-line);
+  border-radius: var(--app-radius);
+  background: var(--app-panel-soft);
 }
 
 .form-grid {
@@ -397,9 +366,36 @@ p {
 .field span,
 .select-field span,
 .combo-field label {
-  color: var(--muted);
   font-weight: 700;
-  font-size: 0.86rem;
+}
+
+.field input,
+.select-field select,
+.combo-field input,
+.field textarea,
+.draft-main input {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid var(--app-line);
+  border-radius: var(--app-radius);
+  background: var(--app-panel);
+  color: var(--app-text);
+  padding: 8px 10px;
+}
+
+.field textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.field input:focus,
+.select-field select:focus,
+.combo-field input:focus,
+.field textarea:focus,
+.draft-main input:focus,
+button:focus-visible {
+  outline: 2px solid var(--app-focus);
+  outline-offset: 2px;
 }
 
 .input-with-button {
@@ -411,8 +407,8 @@ p {
 }
 
 .input-with-button input[readonly] {
-  background: var(--panel-soft);
-  color: var(--muted);
+  background: var(--app-panel-soft);
+  color: var(--app-muted);
 }
 
 .field-icon-button {
@@ -420,15 +416,14 @@ p {
   height: 38px;
   display: inline-grid;
   place-items: center;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--panel);
-  color: var(--text);
+  border: 1px solid var(--app-line);
+  background: var(--app-panel);
+  color: var(--app-text);
   padding: 0;
 }
 
 .field-icon-button:hover {
-  background: var(--panel-soft);
+  background: var(--app-panel-soft);
 }
 
 .native-date-input {
@@ -463,10 +458,10 @@ p {
   max-height: 190px;
   overflow-x: hidden;
   overflow-y: auto;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--panel);
-  box-shadow: 0 12px 24px rgb(15 23 42 / 16%);
+  border: 1px solid var(--app-line);
+  border-radius: var(--app-radius);
+  background: var(--app-panel);
+  box-shadow: var(--app-shadow);
   padding: 4px;
 }
 
@@ -474,15 +469,14 @@ p {
   width: 100%;
   min-height: 32px;
   border: 0;
-  border-radius: 6px;
   background: transparent;
-  color: var(--text);
+  color: var(--app-text);
   text-align: left;
   padding: 6px 8px;
 }
 
 .suggestions button:hover {
-  background: var(--panel-soft);
+  background: var(--app-panel-soft);
 }
 
 .item-actions {
@@ -498,32 +492,31 @@ p {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--panel);
-  color: var(--text);
+  border: 1px solid var(--app-line);
+  background: var(--app-panel);
+  color: var(--app-text);
   padding: 8px 11px;
   white-space: nowrap;
 }
 
 .icon-button:hover {
-  background: var(--panel-soft);
+  background: var(--app-panel-soft);
 }
 
 .icon-button.primary {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #ffffff;
+  background: var(--app-accent);
+  border-color: var(--app-accent);
+  color: var(--app-white);
   font-weight: 700;
 }
 
 .icon-button.primary:hover {
-  background: var(--accent-strong);
+  background: var(--app-accent-strong);
 }
 
 .icon-button.danger {
-  color: var(--danger);
-  border-color: color-mix(in srgb, var(--danger) 46%, var(--line));
+  color: var(--app-danger);
+  border-color: var(--app-danger);
 }
 
 .list-panel {
@@ -538,7 +531,7 @@ p {
 .list-header {
   height: 46px;
   padding: 0 14px;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--app-line);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -554,17 +547,11 @@ p {
 .list-header span {
   min-width: 30px;
   text-align: center;
-  border-radius: 999px;
-  background: var(--panel-soft);
+  border-radius: var(--app-radius-pill);
+  background: var(--app-panel-soft);
   padding: 3px 8px;
-  color: var(--muted);
+  color: var(--app-muted);
   font-weight: 700;
-}
-
-.items-list,
-.draft-list {
-  display: grid;
-  gap: 0;
 }
 
 .item-row,
@@ -575,7 +562,7 @@ p {
   align-items: center;
   min-height: 54px;
   padding: 8px 12px;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--app-line);
 }
 
 .draft-row {
@@ -587,9 +574,9 @@ p {
   height: 28px;
   display: inline-grid;
   place-items: center;
-  border-radius: 999px;
-  background: var(--panel-soft);
-  color: var(--muted);
+  border-radius: var(--app-radius-pill);
+  background: var(--app-panel-soft);
+  color: var(--app-muted);
   font-weight: 700;
 }
 
@@ -597,21 +584,12 @@ p {
 .draft-main strong {
   min-width: 0;
   overflow-wrap: anywhere;
+  margin: 0;
 }
 
 .draft-main {
-  display: grid;
   gap: 4px;
   min-width: 0;
-}
-
-.draft-main span {
-  color: var(--muted);
-  font-size: 0.84rem;
-}
-
-.draft-search {
-  min-width: min(260px, 100%);
 }
 
 .empty-state {
@@ -620,27 +598,13 @@ p {
   place-items: center;
   align-content: center;
   gap: 6px;
-  color: var(--muted);
+  color: var(--app-muted);
   text-align: center;
   padding: 24px;
 }
 
 .empty-state strong {
-  color: var(--text);
-}
-
-.action-rail {
-  position: sticky;
-  top: 0;
-  display: grid;
-  gap: 10px;
-  align-content: start;
-  padding: 12px;
-  height: fit-content;
-}
-
-.action-rail .icon-button {
-  justify-content: flex-start;
+  color: var(--app-text);
 }
 
 .action-bar {
@@ -662,9 +626,10 @@ p {
   gap: 10px;
 }
 
-.module-grid {
+.module-grid,
+.help-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 14px;
 }
 
@@ -674,17 +639,16 @@ p {
   justify-items: start;
   align-content: start;
   gap: 10px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--panel);
-  color: var(--text);
+  border: 1px solid var(--app-line);
+  background: var(--app-panel);
+  color: var(--app-text);
   padding: 16px;
   text-align: left;
 }
 
 .module-card:hover {
-  border-color: var(--brand);
-  background: var(--panel-soft);
+  border-color: var(--app-brand);
+  background: var(--app-panel-soft);
 }
 
 .module-icon {
@@ -692,9 +656,9 @@ p {
   height: 42px;
   display: inline-grid;
   place-items: center;
-  border-radius: var(--radius);
-  background: var(--panel-soft);
-  color: var(--brand);
+  border-radius: var(--app-radius);
+  background: var(--app-panel-soft);
+  color: var(--app-brand);
 }
 
 .module-card strong {
@@ -702,7 +666,6 @@ p {
 }
 
 .module-card small {
-  color: var(--muted);
   line-height: 1.35;
 }
 
@@ -711,7 +674,7 @@ p {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: var(--brand-strong);
+  color: var(--app-brand-strong);
   font-weight: 700;
 }
 
@@ -719,21 +682,22 @@ p {
   padding-bottom: 76px;
 }
 
-.settings-sections {
-  display: grid;
+.settings-sections,
+.settings-section,
+.help-block {
   gap: 14px;
 }
 
-.settings-section {
+.settings-section,
+.help-block {
   padding: 15px;
-  display: grid;
-  gap: 13px;
 }
 
 .settings-section h2,
 .help-block h2 {
   font-size: 1rem;
-  color: var(--brand-strong);
+  color: var(--app-brand-strong);
+  margin: 0;
 }
 
 .path-row {
@@ -743,17 +707,12 @@ p {
   align-items: end;
 }
 
-.module-settings {
-  display: grid;
-  gap: 12px;
-}
-
 .switch-field {
   min-height: 38px;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  color: var(--text);
+  color: var(--app-text);
   font-weight: 700;
 }
 
@@ -769,34 +728,14 @@ p {
   justify-content: space-between;
   gap: 10px;
   padding: 12px 0 0;
-  background: linear-gradient(to top, var(--bg) 76%, transparent);
+  background: linear-gradient(to top, var(--app-bg) 76%, transparent);
 }
 
 .settings-footer .icon-button.danger {
-  background: var(--danger);
-  border-color: var(--danger);
-  color: #ffffff;
+  background: var(--app-danger);
+  border-color: var(--app-danger);
+  color: var(--app-white);
   font-weight: 700;
-}
-
-.settings-footer .icon-button.danger:hover {
-  background: color-mix(in srgb, var(--danger) 88%, #000000);
-}
-
-:root[data-theme="dark"][data-contrast="high"] .settings-footer .icon-button.danger {
-  color: #000000;
-}
-
-.help-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 14px;
-}
-
-.help-block {
-  padding: 15px;
-  display: grid;
-  gap: 10px;
 }
 
 .help-block h2 {
@@ -806,19 +745,17 @@ p {
 }
 
 .help-block p,
-.help-block li {
-  color: var(--muted);
-  line-height: 1.5;
-}
-
 .help-block ol {
   margin: 0;
-  padding-left: 20px;
+}
+
+.help-block li {
+  line-height: 1.5;
 }
 
 @media (max-width: 980px) {
   .app-shell {
-    grid-template-columns: 78px 1fr;
+    grid-template-columns: 78px minmax(0, 1fr);
   }
 
   .brand {
@@ -837,15 +774,6 @@ p {
 
   .nav-button {
     justify-content: center;
-  }
-
-  .page-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .action-rail {
-    position: static;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .action-bar {
@@ -886,7 +814,7 @@ p {
     top: 0;
     z-index: 30;
     border-right: 0;
-    border-bottom: 1px solid var(--line);
+    border-bottom: 1px solid var(--app-line);
     padding: 10px;
   }
 
@@ -895,10 +823,8 @@ p {
   }
 
   .nav-list {
-    display: grid;
     grid-template-columns: repeat(5, 1fr);
     gap: 4px;
-    width: 100%;
   }
 
   .nav-button {
@@ -930,12 +856,25 @@ p {
     align-items: stretch;
   }
 
+  .toolbar,
+  .section-title,
+  .path-row,
+  .draft-row,
+  .item-row,
+  .item-editor,
+  .form-grid,
+  .action-group {
+    grid-template-columns: 1fr;
+  }
+
   .toolbar {
     display: grid;
   }
 
   .number-pill,
-  .year-control {
+  .year-control,
+  .action-bar .icon-button,
+  .action-group .icon-button {
     width: 100%;
   }
 
@@ -944,33 +883,8 @@ p {
   }
 
   .section-title,
-  .toolbar,
-  .path-row,
-    .draft-row,
-    .item-row,
-    .item-editor,
-    .form-grid,
-    .action-group,
-    .action-rail {
-    grid-template-columns: 1fr;
-  }
-
-  .action-bar .icon-button,
-  .action-group .icon-button {
-    width: 100%;
-  }
-
-  .section-title {
-    display: grid;
-  }
-
   .draft-row,
   .item-row {
     display: grid;
-  }
-
-  .item-row .icon-button,
-  .draft-row .icon-button {
-    justify-content: center;
   }
 }

@@ -1,6 +1,7 @@
 import { LOST_FOUND_MODULE_ID, LostFoundGeneratePayload } from "../../types";
 import { defaultLostFoundDocumentName, isValidBrDate } from "./format";
 
+// Adapter descreve a regra mínima do módulo para geração e validação.
 export const lostFoundModuleAdapter = {
   moduleId: LOST_FOUND_MODULE_ID,
   defaultDraftName: "Achados e Perdidos",
@@ -9,6 +10,7 @@ export const lostFoundModuleAdapter = {
 };
 
 export function validateLostFoundPayload(payload: LostFoundGeneratePayload) {
+  // Validação de UI espelha os erros principais do backend antes de abrir diálogo.
   if (!/^\d+\/\d{4}$/.test(payload.officioNumber)) {
     return "Número do ofício inválido.";
   }

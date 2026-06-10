@@ -9,6 +9,7 @@ import {
 import { lostFoundFixture } from "./fixtures";
 import { validateLostFoundPayload } from "./module";
 
+// Testes das regras puras protegem formatação, datas e validação do módulo.
 describe("lost-found format helpers", () => {
   it("formats item with optional brand, description and note", () => {
     expect(

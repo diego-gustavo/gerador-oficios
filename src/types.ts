@@ -1,3 +1,4 @@
+// Tipos compartilhados entre UI, serviços e módulos de geração.
 export const LOST_FOUND_MODULE_ID = "achados-e-perdidos";
 
 export type AppRoute =
@@ -35,6 +36,7 @@ export interface AppConfig {
 }
 
 export interface GeneratorModule {
+  // Metadados que permitem listar, configurar e documentar cada gerador.
   moduleId: string;
   name: string;
   shortName: string;

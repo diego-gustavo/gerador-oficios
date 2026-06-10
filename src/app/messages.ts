@@ -1,3 +1,4 @@
+// Mensagens centralizadas evitam textos divergentes entre telas e ações assíncronas.
 export const MESSAGES = {
   confirmClearItems: "Limpar todos os itens adicionados?",
   confirmResetSettings: "Restaurar todas as configurações para o padrão?",
@@ -22,5 +23,6 @@ export const MESSAGES = {
 } as const;
 
 export function errorMessage(error: unknown, fallback: string) {
+  // Comandos Tauri normalmente retornam Error; fallback cobre respostas inesperadas.
   return error instanceof Error ? error.message : fallback;
 }
