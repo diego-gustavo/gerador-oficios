@@ -2,10 +2,10 @@
 
 ## Curto Prazo
 
-- [ ] Testar fluxo completo dentro do Tauri com planilha real.
-- [ ] Validar template `.docx` final usado em produção.
-- [ ] Rodar cleaner no CSS próprio quando visual estiver aprovado.
 - [ ] Revisar textos finais de erro e toast com usuário operacional.
+- [ ] Antes de criar o documento word, conferir se não teve nenhum erro, se teve parar no começo sem gerar nenhum arquivo.
+- [ ] Barra lateral deve ser fixa sem se mover com a página.
+- [ ] Ocultar CMD quando o app abre.
 
 ## Próximos Módulos
 
@@ -16,5 +16,6 @@
 ## Qualidade
 
 - [ ] Adicionar teste visual/smoke com navegador local.
-- [ ] Documentar processo de release Tauri.
-- [ ] Criar backup versionado de templates aprovados.
+- [ ] Documentar release v1.0.0.
+- [ ] Documentar com detalhes cada função dentro dos códigos.
+- [ ] Reduzir o número de dependências para otimizar a geração das builds
