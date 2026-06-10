@@ -10,7 +10,7 @@ export function renderGenerators(container: HTMLElement, context: AppContext) {
       <div class="section-title">
         <div>
           <h1>Geradores</h1>
-          <span>Modulos disponiveis para emissao de documentos.</span>
+          <span>Módulos disponíveis para emissão de documentos.</span>
         </div>
       </div>
       <div class="module-grid">

@@ -10,16 +10,16 @@ export const lostFoundModuleAdapter = {
 
 export function validateLostFoundPayload(payload: LostFoundGeneratePayload) {
   if (!/^\d+\/\d{4}$/.test(payload.officioNumber)) {
-    return "Numero do oficio invalido.";
+    return "Número do ofício inválido.";
   }
   if (!isValidBrDate(payload.officioDate)) {
-    return "Data invalida. Use dd/mm/aaaa.";
+    return "Data inválida. Use dd/mm/aaaa.";
   }
   if (!payload.documentName.trim()) {
-    return "Informe o nome do oficio.";
+    return "Informe o nome do ofício.";
   }
   if (!payload.responsible) {
-    return "Informe o responsavel.";
+    return "Informe o responsável.";
   }
   if (payload.items.length === 0) {
     return "Adicione pelo menos um item.";

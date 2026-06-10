@@ -1,7 +1,7 @@
 export const MESSAGES = {
   confirmClearItems: "Limpar todos os itens adicionados?",
-  confirmResetSettings: "Restaurar todas as configuracoes para o padrao?",
-  draftDeleted: "Rascunho excluido.",
+  confirmResetSettings: "Restaurar todas as configurações para o padrão?",
+  draftDeleted: "Rascunho excluído.",
   draftLoaded: "Rascunho carregado.",
   draftRenamed: "Rascunho renomeado.",
   draftSaved: "Rascunho salvo.",
@@ -10,15 +10,15 @@ export const MESSAGES = {
   draftDeleteFailed: "Falha ao excluir rascunho.",
   draftRenameFailed: "Falha ao renomear.",
   draftsListFailed: "Falha ao listar rascunhos.",
-  generationCanceled: "Geracao cancelada.",
-  generationFailed: "Falha na geracao.",
+  generationCanceled: "Geração cancelada.",
+  generationFailed: "Falha na geração.",
   itemRequired: "Informe o item.",
   noItems: "Nenhum item adicionado.",
-  numberNotLoaded: "Numero nao carregado.",
-  settingsRestored: "Configuracoes restauradas.",
-  settingsRestoreFailed: "Falha ao restaurar configuracoes.",
-  settingsSaved: "Configuracoes salvas.",
-  settingsSaveFailed: "Falha ao salvar configuracoes.",
+  numberNotLoaded: "Número não carregado.",
+  settingsRestored: "Configurações restauradas.",
+  settingsRestoreFailed: "Falha ao restaurar configurações.",
+  settingsSaved: "Configurações salvas.",
+  settingsSaveFailed: "Falha ao salvar configurações.",
 } as const;
 
 export function errorMessage(error: unknown, fallback: string) {

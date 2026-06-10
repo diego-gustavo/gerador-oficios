@@ -8,7 +8,7 @@ export function renderHelp(container: HTMLElement) {
       <div class="section-title">
         <div>
           <h1>Ajuda</h1>
-          <span>Uso rapido do gerador.</span>
+          <span>Uso rápido do gerador.</span>
         </div>
       </div>
 

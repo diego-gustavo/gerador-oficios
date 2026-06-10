@@ -21,7 +21,7 @@ export function renderGeneratorPage(options: GeneratorPageOptions) {
 
         ${options.content}
 
-        <footer class="action-bar" aria-label="Acoes do gerador">
+        <footer class="action-bar" aria-label="Ações do gerador">
           <div class="action-group">${options.secondaryActions}</div>
           ${options.primaryAction}
         </footer>

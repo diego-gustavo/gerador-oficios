@@ -28,10 +28,10 @@ export function renderDrafts(container: HTMLElement, context: AppContext) {
       <div class="section-title">
         <div>
           <h1>Rascunhos</h1>
-          <span>Arquivos salvos por modulo.</span>
+          <span>Arquivos salvos por módulo.</span>
         </div>
         <label class="select-field">
-          <span>Modulo</span>
+          <span>Módulo</span>
           <select id="draft-filter">
             ${generatorModules
               .map(

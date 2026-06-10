@@ -41,8 +41,8 @@ export function renderLostFound(container: HTMLElement, context: AppContext) {
   const canClear = lostFound.items.length > 0 && !lostFound.busy;
   const datePickerValue = brDateToIso(lostFound.officioDate);
   const lockLabel = lostFound.documentNameLocked
-    ? "Liberar edicao do nome do oficio"
-    : "Bloquear e restaurar nome padrao";
+    ? "Liberar edição do nome do ofício"
+    : "Bloquear e restaurar nome padrão";
   const itemRows = lostFound.items.length
     ? lostFound.items
         .map(
@@ -58,18 +58,18 @@ export function renderLostFound(container: HTMLElement, context: AppContext) {
         .join("")
     : emptyState(
         "Nenhum item adicionado",
-        "Informe item, marca, descricao e observacao quando houver.",
+        "Informe item, marca, descrição e observação quando houver.",
       );
 
   const content = `
         <div class="toolbar">
-          <div class="year-control" aria-label="Ano do oficio">
+          <div class="year-control" aria-label="Ano do ofício">
             <button type="button" data-action="year-down">-</button>
             <strong>${lostFound.year}</strong>
             <button type="button" data-action="year-up">+</button>
           </div>
           <div class="number-pill">
-            <span>Proximo oficio</span>
+            <span>Próximo ofício</span>
             <strong>${lostFound.loadingNumber ? "Carregando..." : escapeHtml(lostFound.officioNumber)}</strong>
           </div>
           ${button("Atualizar", "refresh-cw", "refresh-number", {
@@ -79,20 +79,20 @@ export function renderLostFound(container: HTMLElement, context: AppContext) {
 
         <div class="form-grid compact">
           <label class="field" for="lf-date">
-            <span>Data do oficio</span>
+            <span>Data do ofício</span>
             <div class="input-with-button date-input-group">
               <input id="lf-date" value="${escapeAttr(lostFound.officioDate)}" placeholder="dd/mm/aaaa" inputmode="numeric" />
-              <button type="button" class="field-icon-button" data-action="pick-date" aria-label="Abrir calendario" title="Abrir calendario">
+              <button type="button" class="field-icon-button" data-action="pick-date" aria-label="Abrir calendário" title="Abrir calendário">
                 ${icon("calendar-days")}
               </button>
               <input id="lf-date-native" class="native-date-input" type="date" value="${escapeAttr(datePickerValue)}" tabindex="-1" aria-hidden="true" />
             </div>
           </label>
-          ${field("Responsavel", "lf-responsible", lostFound.responsible, "Nome do responsavel")}
+          ${field("Responsável", "lf-responsible", lostFound.responsible, "Nome do responsável")}
           <label class="field" for="lf-document-name">
-            <span>Nome do oficio</span>
+            <span>Nome do ofício</span>
             <div class="input-with-button lock-input-group">
-              <input id="lf-document-name" value="${escapeAttr(lostFound.documentName)}" placeholder="Nome do oficio" ${lostFound.documentNameLocked ? "readonly" : ""} />
+              <input id="lf-document-name" value="${escapeAttr(lostFound.documentName)}" placeholder="Nome do ofício" ${lostFound.documentNameLocked ? "readonly" : ""} />
               <button type="button" class="field-icon-button" data-action="toggle-document-name-lock" aria-label="${escapeAttr(lockLabel)}" title="${escapeAttr(lockLabel)}">
                 ${icon(lostFound.documentNameLocked ? "lock" : "lock-open")}
               </button>
@@ -104,12 +104,12 @@ export function renderLostFound(container: HTMLElement, context: AppContext) {
         <div class="item-editor">
           <div class="combo-field" id="item-combo">
             <label for="lf-item">Item</label>
-            <input id="lf-item" value="${escapeAttr(lostFound.itemName)}" placeholder="Cartao, RG, Oculos..." autocomplete="off" />
+            <input id="lf-item" value="${escapeAttr(lostFound.itemName)}" placeholder="Cartão, RG, Óculos..." autocomplete="off" />
             <div class="suggestions" id="suggestions" hidden></div>
           </div>
           ${field("Marca", "lf-marca", lostFound.marca, "Opcional")}
-          ${field("Descricao", "lf-descricao", lostFound.descricao, "Opcional")}
-          ${field("Observacao", "lf-observacao", lostFound.observacao, "Opcional")}
+          ${field("Descrição", "lf-descricao", lostFound.descricao, "Opcional")}
+          ${field("Observação", "lf-observacao", lostFound.observacao, "Opcional")}
           <div class="item-actions">
             ${button(lostFound.editingId ? "Atualizar" : "Adicionar", lostFound.editingId ? "check" : "plus", "add-item", {
               variant: "primary",
@@ -136,7 +136,7 @@ export function renderLostFound(container: HTMLElement, context: AppContext) {
       ${button("Carregar rascunho", "folder-open", "open-drafts", { disabled: lostFound.busy })}
       ${button("Limpar itens", "eraser", "clear-items", { disabled: !canClear })}
     `,
-    primaryAction: button("Gerar oficio", "file-plus-2", "generate", {
+    primaryAction: button("Gerar ofício", "file-plus-2", "generate", {
       variant: "primary",
       disabled: lostFound.busy,
     }),
@@ -242,9 +242,10 @@ export function applyLostFoundDraft(
 }
 
 function nextOfficioCacheKey(context: AppContext, year: number) {
+  const moduleConfig = context.state.config.modules[LOST_FOUND_MODULE_ID];
   return [
     LOST_FOUND_MODULE_ID,
-    context.state.config.excelPath.trim(),
+    moduleConfig?.excelPath.trim() || "",
     year,
   ].join("|");
 }
@@ -538,7 +539,8 @@ async function handleGenerate(context: AppContext) {
 
   try {
     const defaultFileName = await getDefaultSaveFilename(payload);
-    const savePath = await pickSaveFile(defaultFileName, state.config.defaultSaveDir);
+    const moduleConfig = state.config.modules[LOST_FOUND_MODULE_ID];
+    const savePath = await pickSaveFile(defaultFileName, moduleConfig?.defaultSaveDir);
     if (!savePath) {
       context.showToast({ tone: "info", message: MESSAGES.generationCanceled });
       return;
@@ -561,7 +563,7 @@ async function handleGenerate(context: AppContext) {
 
     context.showToast({
       tone: "success",
-      message: `Oficio ${generated.officioNumber} gerado e registrado.`,
+      message: `Ofício ${generated.officioNumber} gerado e registrado.`,
     });
     await refreshNextOfficio(context);
   } catch (error) {

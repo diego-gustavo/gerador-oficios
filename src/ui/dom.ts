@@ -26,7 +26,7 @@ export function query<T extends HTMLElement>(
 ): T {
   const element = parent.querySelector<T>(selector);
   if (!element) {
-    throw new Error(`Elemento nao encontrado: ${selector}`);
+    throw new Error(`Elemento não encontrado: ${selector}`);
   }
   return element;
 }

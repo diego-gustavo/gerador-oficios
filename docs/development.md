@@ -31,9 +31,9 @@ Para desativar:
 localStorage.removeItem("gerador-oficios:debug")
 ```
 
-## Estrutura de modulo
+## Estrutura de módulo
 
-Novos modulos devem ser adicionados em `src/modules/registry.ts`. O registro define nome, rota, template, tags obrigatorias, assunto/destino de planilha, colunas Excel e passos de ajuda.
+Novos módulos devem ser adicionados em `src/modules/registry.ts`. O registro define nome, rota, template, tags obrigatórias, assunto/destino de planilha, colunas Excel e passos de ajuda.
 
 Templates devem ficar em:
 
@@ -41,3 +41,8 @@ Templates devem ficar em:
 src-tauri/resources/templates/{moduleId}/template.docx
 ```
 
+## Ativos centralizados
+
+- Template editável do módulo Achados e Perdidos: `src-tauri/resources/templates/achados-e-perdidos/template.docx`.
+- Ícone do aplicativo e favicon: `public/img/favicon.ico` e `public/img/favicon.png`.
+- O Tauri usa esses mesmos arquivos no build; não mantenha cópias em `src-tauri/icons` nem `template.docx` na raiz.

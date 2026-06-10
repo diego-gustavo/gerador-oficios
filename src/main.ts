@@ -16,7 +16,7 @@ import { icon } from "./ui/icons";
 const rootElement = document.getElementById("root");
 
 if (!rootElement) {
-  throw new Error("Elemento #root nao encontrado.");
+  throw new Error("Elemento #root não encontrado.");
 }
 
 const appRoot = rootElement;
@@ -103,7 +103,7 @@ function renderApp() {
           <img class="brand-logo brand-logo-dark" src="/img/logo-branco.png" alt="BRT Sorocaba" />
           <div>
             <strong>Gerador BRT</strong>
-            <span>Oficios operacionais</span>
+            <span>Ofícios operacionais</span>
           </div>
         </div>
         <nav class="nav-list" aria-label="Principal">
@@ -188,6 +188,6 @@ loadConfig()
   .catch((error) => {
     showToast({
       tone: "warning",
-      message: error instanceof Error ? error.message : "Configuracoes padrao carregadas.",
+      message: error instanceof Error ? error.message : "Configurações padrão carregadas.",
     });
   });

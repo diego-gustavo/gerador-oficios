@@ -16,28 +16,16 @@ export function renderSettings(container: HTMLElement, context: AppContext) {
     <section class="page settings-page">
       <div class="section-title">
         <div>
-          <h1>Configuracoes</h1>
-          <span>Caminhos, modulos e acessibilidade.</span>
+          <h1>Configurações</h1>
+          <span>Módulos e aparência.</span>
         </div>
       </div>
 
       <div class="settings-sections">
-        <section class="settings-section">
-          <h2>Caminhos</h2>
-          <div class="path-row">
-            ${field("Planilha Excel", "cfg-excel", draft.excelPath)}
-            ${button("Procurar", "folder-open", "pick-excel")}
-          </div>
-          <div class="path-row">
-            ${field("Pasta padrao", "cfg-save-dir", draft.defaultSaveDir)}
-            ${button("Procurar", "folder-open", "pick-save-dir")}
-          </div>
-        </section>
-
         ${generatorModules.map((module) => renderModuleSettings(module, draft)).join("")}
 
         <section class="settings-section">
-          <h2>Acessibilidade</h2>
+          <h2>Aparência</h2>
           <div class="form-grid compact">
             <label class="select-field">
               <span>Tema</span>
@@ -67,8 +55,8 @@ export function renderSettings(container: HTMLElement, context: AppContext) {
       </div>
 
       <footer class="settings-footer">
-        ${button("Restaurar padrao", "rotate-ccw", "reset-config", { variant: "danger" })}
-        ${button("Salvar configuracoes", "save", "save-config", { variant: "primary" })}
+        ${button("Restaurar padrão", "rotate-ccw", "reset-config", { variant: "danger" })}
+        ${button("Salvar configurações", "save", "save-config", { variant: "primary" })}
       </footer>
     </section>
   `;
@@ -81,9 +69,18 @@ function renderModuleSettings(module: GeneratorModule, draft: AppConfig) {
   const moduleConfig = draft.modules[module.moduleId];
   const moduleId = escapeAttr(module.moduleId);
 
+  // Cada módulo concentra seus próprios caminhos e regras de Excel.
   return `
     <section class="settings-section">
-      <h2>Modulo ${escapeHtml(module.name)}</h2>
+      <h2>Módulo ${escapeHtml(module.name)}</h2>
+      <div class="path-row">
+        ${field("Planilha Excel", `cfg-excel-${moduleId}`, moduleConfig.excelPath)}
+        ${button("Procurar", "folder-open", "pick-excel", { id: module.moduleId })}
+      </div>
+      <div class="path-row">
+        ${field("Pasta padrão", `cfg-save-dir-${moduleId}`, moduleConfig.defaultSaveDir)}
+        ${button("Procurar", "folder-open", "pick-save-dir", { id: module.moduleId })}
+      </div>
       <div class="path-row">
         ${field("Template Word", `cfg-template-${moduleId}`, moduleConfig.templatePath)}
         ${button("Procurar", "folder-open", "pick-template", { id: module.moduleId })}
@@ -93,17 +90,17 @@ function renderModuleSettings(module: GeneratorModule, draft: AppConfig) {
         ${field("Destino na planilha", `cfg-destination-${moduleId}`, moduleConfig.excelDestination)}
       </div>
       <div class="form-grid column-grid">
-        ${renderColumnField(moduleId, "Numero", "number", moduleConfig.excelColumns)}
+        ${renderColumnField(moduleId, "Número", "number", moduleConfig.excelColumns)}
         ${renderColumnField(moduleId, "Assunto", "subject", moduleConfig.excelColumns)}
         ${renderColumnField(moduleId, "Data", "date", moduleConfig.excelColumns)}
         ${renderColumnField(moduleId, "Destino", "destination", moduleConfig.excelColumns)}
-        ${renderColumnField(moduleId, "Responsavel", "responsible", moduleConfig.excelColumns)}
+        ${renderColumnField(moduleId, "Responsável", "responsible", moduleConfig.excelColumns)}
       </div>
       ${
         module.usesSuggestions
           ? `
             <label class="field" for="cfg-suggestions-${moduleId}">
-              <span>Sugestoes</span>
+              <span>Sugestões</span>
               <textarea id="cfg-suggestions-${moduleId}" rows="8">${escapeHtml(moduleConfig.suggestions.join("\n"))}</textarea>
             </label>
           `
@@ -129,18 +126,17 @@ function updateSettings(context: AppContext, updater: (draft: AppConfig) => void
 }
 
 function wireSettingsFields(container: HTMLElement, context: AppContext) {
-  bindInput(container, "#cfg-excel", (value) => {
-    updateSettings(context, (draft) => {
-      draft.excelPath = value;
-    });
-  });
-  bindInput(container, "#cfg-save-dir", (value) => {
-    updateSettings(context, (draft) => {
-      draft.defaultSaveDir = value;
-    });
-  });
-
   generatorModules.forEach((module) => {
+    bindInput(container, `#cfg-excel-${module.moduleId}`, (value) => {
+      updateSettings(context, (draft) => {
+        draft.modules[module.moduleId].excelPath = value;
+      });
+    });
+    bindInput(container, `#cfg-save-dir-${module.moduleId}`, (value) => {
+      updateSettings(context, (draft) => {
+        draft.modules[module.moduleId].defaultSaveDir = value;
+      });
+    });
     bindInput(container, `#cfg-template-${module.moduleId}`, (value) => {
       updateSettings(context, (draft) => {
         draft.modules[module.moduleId].templatePath = value;
@@ -207,11 +203,11 @@ function wireSettingsFields(container: HTMLElement, context: AppContext) {
     item.addEventListener("click", () => {
       const action = item.dataset.action || "";
       if (action === "pick-excel") {
-        void pickConfigPath(context, "excel");
+        void pickConfigPath(context, "excel", item.dataset.id || "");
       } else if (action === "pick-template") {
         void pickConfigPath(context, "template", item.dataset.id || "");
       } else if (action === "pick-save-dir") {
-        void pickConfigPath(context, "save-dir");
+        void pickConfigPath(context, "save-dir", item.dataset.id || "");
       } else if (action === "save-config") {
         void handleSaveConfig(context);
       } else if (action === "reset-config") {
@@ -227,17 +223,17 @@ async function pickConfigPath(
   moduleId = "",
 ) {
   const path = target === "save-dir" ? await pickFolder() : await pickFile();
-  if (!path) {
+  if (!path || !moduleId) {
     return;
   }
 
   updateSettings(context, (draft) => {
     if (target === "excel") {
-      draft.excelPath = path;
+      draft.modules[moduleId].excelPath = path;
     } else if (target === "template" && moduleId) {
       draft.modules[moduleId].templatePath = path;
     } else {
-      draft.defaultSaveDir = path;
+      draft.modules[moduleId].defaultSaveDir = path;
     }
   });
   context.renderApp();

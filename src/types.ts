@@ -18,6 +18,8 @@ export interface ExcelColumnMap {
 }
 
 export interface ModuleConfig {
+  excelPath: string;
+  defaultSaveDir: string;
   templatePath: string;
   suggestions: string[];
   excelSubject: string;
@@ -26,8 +28,6 @@ export interface ModuleConfig {
 }
 
 export interface AppConfig {
-  excelPath: string;
-  defaultSaveDir: string;
   theme: ThemePreference;
   interfaceScale: number;
   highContrast: boolean;

@@ -20,6 +20,6 @@ export const routeTitle: Record<AppRoute, string> = {
   generators: "Geradores",
   "lost-found": "Achados e Perdidos",
   drafts: "Rascunhos",
-  settings: "Configuracoes",
+  settings: "Configurações",
   help: "Ajuda",
 };

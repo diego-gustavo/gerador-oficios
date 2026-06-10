@@ -1,12 +1,12 @@
-# Gerador de Oficios BRT
+# Gerador de Ofícios BRT
 
-Aplicativo desktop Tauri para gerar e registrar oficios operacionais.
+Aplicativo desktop Tauri para gerar e registrar ofícios operacionais.
 
 ## Stack
 
 - Frontend: HTML, CSS e TypeScript puro via Vite.
-- Backend: Tauri/Rust para dialogos locais, configuracoes, rascunhos, DOCX e Excel.
-- Modulo inicial: `achados-e-perdidos`.
+- Backend: Tauri/Rust para diálogos locais, configurações, rascunhos, DOCX e Excel.
+- Módulo inicial: `achados-e-perdidos`.
 
 ## Rodar frontend em desenvolvimento
 
@@ -43,12 +43,12 @@ npm.cmd run tauri:build
 ```text
 src/
   app/          estado global, contexto e rotas
-  config/       configuracao padrao e normalizacao
-  modules/      regras por modulo de gerador
+  config/       configuração padrão e normalização
+  modules/      regras por módulo de gerador
   pages/        telas renderizadas em HTML/TS
   services/     ponte com comandos Tauri e fallback web
   styles/       CSS da aplicacao
-  ui/           helpers de DOM, icones e componentes pequenos
+  ui/           helpers de DOM, ícones e componentes pequenos
 src-tauri/
   resources/    templates empacotados
   src/          backend Rust e comandos Tauri
@@ -56,9 +56,10 @@ src-tauri/
 
 ## Arquivos locais
 
-- Configuracoes: `app_data_dir/config.json`.
+- Configurações: `app_data_dir/config.json`.
 - Rascunhos: `app_data_dir/drafts/{moduleId}/{draftId}.json`.
 - Template empacotado: `src-tauri/resources/templates/achados-e-perdidos/template.docx`.
+- Ícone/favicons: `public/img/favicon.ico` e `public/img/favicon.png`.
 
 ## Tags do template Word
 

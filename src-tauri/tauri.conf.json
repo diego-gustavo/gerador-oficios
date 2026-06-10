@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Gerador de Oficios BRT",
+  "productName": "Gerador de Ofícios BRT",
   "version": "0.1.0",
   "identifier": "brt.sorocaba.geradoroficios",
   "build": {
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Gerador de Oficios BRT",
+        "title": "Gerador de Ofícios BRT",
         "width": 1180,
         "height": 760,
         "minWidth": 920,
@@ -27,7 +27,7 @@
   "bundle": {
     "active": true,
     "targets": "all",
-    "icon": ["icons/icon.ico", "icons/icon.png"],
+    "icon": ["../public/img/favicon.ico", "../public/img/favicon.png"],
     "resources": ["resources/templates/**/*"]
   }
 }

@@ -1,24 +1,24 @@
 # Checklist de QA manual
 
-## Configuracoes
+## Configurações
 
-- Escolher planilha Excel existente.
-- Escolher pasta padrao de salvamento.
-- Escolher template Word do modulo.
+- No card do módulo Achados e Perdidos, escolher planilha Excel existente.
+- No card do módulo Achados e Perdidos, escolher pasta padrão de salvamento.
+- No card do módulo Achados e Perdidos, escolher template Word.
 - Alterar e salvar tema claro, escuro e sistema.
 - Alterar escala da interface.
 - Ativar e desativar alto contraste.
-- Restaurar configuracoes padrao e confirmar reset.
+- Restaurar configurações padrão e confirmar reset.
 
 ## Achados e Perdidos
 
-- Atualizar proximo numero do oficio para o ano atual.
+- Atualizar próximo número do ofício para o ano atual.
 - Trocar ano com `-` e `+`.
 - Preencher data manualmente.
-- Abrir calendario pelo botao ao lado da data.
-- Desbloquear nome do oficio pelo cadeado e editar.
-- Bloquear novamente e conferir restauracao do nome padrao.
-- Adicionar item com item, marca, descricao e observacao.
+- Abrir calendário pelo botão ao lado da data.
+- Desbloquear nome do ofício pelo cadeado e editar.
+- Bloquear novamente e conferir restauração do nome padrão.
+- Adicionar item com item, marca, descrição e observação.
 - Editar item existente.
 - Remover item existente.
 - Limpar todos os itens com confirmacao.
@@ -26,13 +26,13 @@
 ## Rascunhos
 
 - Salvar rascunho.
-- Listar rascunhos por modulo.
+- Listar rascunhos por módulo.
 - Buscar rascunho por nome.
 - Abrir rascunho.
 - Renomear rascunho.
 - Excluir rascunho com confirmacao.
 
-## Geracao
+## Geração
 
 - Gerar DOCX com template valido.
 - Abrir DOCX gerado e conferir `{{DATA}}`, `{{OFICIO}}` e `{{LISTA_ITENS}}`.

@@ -24,10 +24,10 @@ export const generatorModules: GeneratorModule[] = [
       },
     },
     helpSteps: [
-      "Confira ano, numero e data do oficio.",
-      "Preencha responsavel e itens no formato Item \"Marca\" - Descricao (Observacao).",
-      "Use rascunhos para salvar uma emissao em andamento.",
-      "Gere o documento e registre a emissao na planilha configurada.",
+      "Confira ano, número e data do ofício.",
+      "Preencha responsável e itens no formato Item \"Marca\" - Descrição (Observação).",
+      "Use rascunhos para salvar uma emissão em andamento.",
+      "Gere o documento e registre a emissão na planilha configurada.",
     ],
   },
 ];

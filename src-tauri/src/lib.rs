@@ -28,7 +28,13 @@ pub struct ExcelColumnMap {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ModuleConfig {
+    #[serde(default)]
+    pub excel_path: String,
+    #[serde(default)]
+    pub default_save_dir: String,
+    #[serde(default)]
     pub template_path: String,
+    #[serde(default)]
     pub suggestions: Vec<String>,
     pub excel_subject: Option<String>,
     pub excel_destination: Option<String>,
@@ -38,12 +44,14 @@ pub struct ModuleConfig {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AppConfig {
-    pub excel_path: String,
-    pub default_save_dir: String,
     pub theme: String,
     pub interface_scale: u16,
     pub high_contrast: bool,
     pub modules: HashMap<String, ModuleConfig>,
+    #[serde(default, rename = "excelPath", skip_serializing)]
+    pub legacy_excel_path: Option<String>,
+    #[serde(default, rename = "defaultSaveDir", skip_serializing)]
+    pub legacy_default_save_dir: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -124,6 +132,11 @@ fn default_config(app: &AppHandle) -> AppConfig {
     modules.insert(
         LOST_FOUND_MODULE_ID.to_string(),
         ModuleConfig {
+            excel_path: "J:/Usuários/Documentos Gerais/Controle Ofícios - BRT Operação.xlsx"
+                .to_string(),
+            default_save_dir:
+                "M:/Remissão/Base/Relatórios Fechados/Ofícios e protocolos/Ofícios 2026 - BRT"
+                    .to_string(),
             template_path: default_template_path(app),
             suggestions: default_suggestions(),
             excel_subject: Some("Encaminhamento de Achados e Perdidos".to_string()),
@@ -139,20 +152,30 @@ fn default_config(app: &AppHandle) -> AppConfig {
     );
 
     AppConfig {
-        excel_path: "J:/Usuários/Documentos Gerais/Controle Ofícios - BRT Operação.xlsx"
-            .to_string(),
-        default_save_dir:
-            "M:/Remissão/Base/Relatórios Fechados/Ofícios e protocolos/Ofícios 2026 - BRT"
-                .to_string(),
         theme: "system".to_string(),
         interface_scale: 100,
         high_contrast: false,
         modules,
+        legacy_excel_path: None,
+        legacy_default_save_dir: None,
     }
 }
 
 fn merge_config(app: &AppHandle, mut config: AppConfig) -> AppConfig {
     let defaults = default_config(app);
+
+    // Compatibilidade: versões antigas salvavam os caminhos no topo da config.
+    // Ao carregar, migramos esses valores para cada módulo e gravamos só o formato novo.
+    let legacy_excel_path = config
+        .legacy_excel_path
+        .take()
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty());
+    let legacy_default_save_dir = config
+        .legacy_default_save_dir
+        .take()
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty());
 
     if config.theme.is_empty() {
         config.theme = defaults.theme;
@@ -166,16 +189,38 @@ fn merge_config(app: &AppHandle, mut config: AppConfig) -> AppConfig {
             .modules
             .entry(module_id)
             .and_modify(|module| {
+                if module.excel_path.trim().is_empty() {
+                    module.excel_path = legacy_excel_path
+                        .clone()
+                        .unwrap_or_else(|| module_defaults.excel_path.clone());
+                }
+                if module.default_save_dir.trim().is_empty() {
+                    module.default_save_dir = legacy_default_save_dir
+                        .clone()
+                        .unwrap_or_else(|| module_defaults.default_save_dir.clone());
+                }
                 if module.template_path.is_empty() {
                     module.template_path = module_defaults.template_path.clone();
                 }
                 if module.suggestions.is_empty() {
                     module.suggestions = module_defaults.suggestions.clone();
                 }
-                if module.excel_subject.as_deref().unwrap_or("").trim().is_empty() {
+                if module
+                    .excel_subject
+                    .as_deref()
+                    .unwrap_or("")
+                    .trim()
+                    .is_empty()
+                {
                     module.excel_subject = module_defaults.excel_subject.clone();
                 }
-                if module.excel_destination.as_deref().unwrap_or("").trim().is_empty() {
+                if module
+                    .excel_destination
+                    .as_deref()
+                    .unwrap_or("")
+                    .trim()
+                    .is_empty()
+                {
                     module.excel_destination = module_defaults.excel_destination.clone();
                 }
                 if module.excel_columns.is_none() {
@@ -184,6 +229,9 @@ fn merge_config(app: &AppHandle, mut config: AppConfig) -> AppConfig {
             })
             .or_insert(module_defaults);
     }
+
+    config.legacy_excel_path = None;
+    config.legacy_default_save_dir = None;
 
     config
 }
@@ -255,7 +303,7 @@ fn cell_to_string(cell: Option<&Data>) -> String {
 
 fn find_sheet_by_year(path: &str, year: i32) -> Result<String, String> {
     if !Path::new(path).exists() {
-        return Err("Planilha Excel nao encontrada.".to_string());
+        return Err("Planilha Excel não encontrada.".to_string());
     }
 
     let workbook = open_workbook_auto(path).map_err(|err| err.to_string())?;
@@ -379,6 +427,31 @@ fn escape_xml(value: &str) -> String {
         .replace('\'', "&apos;")
 }
 
+fn normalize_split_placeholder(xml: &str, tag: &str) -> Result<String, String> {
+    let separator = r#"(?:\s*<[^>]+>\s*)*"#;
+    let mut pattern = String::new();
+
+    for (index, ch) in tag.chars().enumerate() {
+        if index > 0 {
+            pattern.push_str(separator);
+        }
+        pattern.push_str(&regex::escape(&ch.to_string()));
+    }
+
+    let re = Regex::new(&pattern).map_err(|err| err.to_string())?;
+    Ok(re.replace_all(xml, tag).to_string())
+}
+
+fn normalize_docx_placeholders(xml: &str) -> Result<String, String> {
+    let mut normalized = xml.to_string();
+
+    for tag in ["{{DATA}}", "{{OFICIO}}", "{{LISTA_ITENS}}"] {
+        normalized = normalize_split_placeholder(&normalized, tag)?;
+    }
+
+    Ok(normalized)
+}
+
 fn list_xml(items: &[LostFoundItem], paragraph_properties: Option<&str>) -> String {
     let uses_word_numbering = paragraph_properties
         .map(|properties| properties.contains("<w:numPr>"))
@@ -406,25 +479,30 @@ fn list_xml(items: &[LostFoundItem], paragraph_properties: Option<&str>) -> Stri
 }
 
 fn replace_list_placeholder(xml: &str, items: &[LostFoundItem]) -> Result<String, String> {
-    let paragraph_re = Regex::new(r#"(?s)<w:p\b[^>]*>.*?\{\{LISTA_ITENS\}\}.*?</w:p>"#)
-        .map_err(|err| err.to_string())?;
+    let paragraph_re = Regex::new(r#"(?s)<w:p\b[^>]*>.*?</w:p>"#).map_err(|err| err.to_string())?;
     let paragraph_properties_re =
         Regex::new(r#"(?s)<w:pPr\b[^>]*>.*?</w:pPr>"#).map_err(|err| err.to_string())?;
 
-    if let Some(paragraph_match) = paragraph_re.find(xml) {
+    for paragraph_match in paragraph_re.find_iter(xml) {
         let paragraph = paragraph_match.as_str();
+        if !paragraph.contains("{{LISTA_ITENS}}") {
+            continue;
+        }
+
         let paragraph_properties = paragraph_properties_re
             .find(paragraph)
             .map(|value| value.as_str());
         let replacement = list_xml(items, paragraph_properties);
 
-        Ok(format!(
+        return Ok(format!(
             "{}{}{}",
             &xml[..paragraph_match.start()],
             replacement,
             &xml[paragraph_match.end()..]
-        ))
-    } else if xml.contains("{{LISTA_ITENS}}") {
+        ));
+    }
+
+    if xml.contains("{{LISTA_ITENS}}") {
         let replacement = list_xml(items, None);
         Ok(xml.replace("{{LISTA_ITENS}}", &replacement))
     } else {
@@ -480,7 +558,8 @@ fn generate_docx_from_template(
 
         if should_edit_xml {
             if let Ok(xml) = String::from_utf8(contents.clone()) {
-                let mut edited = replace_docx_tags(&xml, payload, date);
+                let mut edited = normalize_docx_placeholders(&xml)?;
+                edited = replace_docx_tags(&edited, payload, date);
                 if edited.contains("{{LISTA_ITENS}}") {
                     edited = replace_list_placeholder(&edited, &payload.items)?;
                     found_list_tag = true;
@@ -539,20 +618,20 @@ fn ensure_docx_extension(value: &str) -> String {
 fn backup_excel_file(path: &Path) -> Result<(), String> {
     let parent = path
         .parent()
-        .ok_or_else(|| "Nao foi possivel localizar a pasta da planilha.".to_string())?;
+        .ok_or_else(|| "Não foi possível localizar a pasta da planilha.".to_string())?;
     let file_name = path
         .file_name()
         .and_then(|value| value.to_str())
-        .ok_or_else(|| "Nome da planilha invalido para backup.".to_string())?;
+        .ok_or_else(|| "Nome da planilha inválido para backup.".to_string())?;
     let backup_dir = parent.join(".backups");
     fs::create_dir_all(&backup_dir)
-        .map_err(|err| format!("Nao foi possivel criar a pasta de backup: {}", err))?;
+        .map_err(|err| format!("Não foi possível criar a pasta de backup: {}", err))?;
 
     let stamp = Local::now().format("%Y%m%d-%H%M%S");
     let backup_path = backup_dir.join(format!("{}-{}", stamp, file_name));
     fs::copy(path, backup_path)
         .map(|_| ())
-        .map_err(|err| format!("Nao foi possivel criar backup da planilha: {}", err))
+        .map_err(|err| format!("Não foi possível criar backup da planilha: {}", err))
 }
 
 fn excel_column(value: Option<&String>, fallback: &str) -> String {
@@ -641,67 +720,11 @@ fn get_default_save_filename(payload: LostFoundGeneratePayload) -> Result<String
     save_filename(&payload)
 }
 
-#[tauri::command]
-fn get_next_officio(app: AppHandle, module_id: String, year: i32) -> Result<String, String> {
-    sanitize_module_id(&module_id)?;
-    let config = read_config(&app)?;
-    let module = module_config(&config, &module_id)?;
-    let excel_path = config.excel_path.trim();
-    if excel_path.is_empty() {
-        return Ok(format!("1/{}", year));
-    }
-
-    match find_sheet_by_year(excel_path, year) {
-        Ok(sheet_name) => next_number_from_sheet(excel_path, &sheet_name, year),
-        Err(_) => Ok(format!("1/{}", year)),
-    }
-}
-
-#[tauri::command]
-fn generate_document(
-    app: AppHandle,
-    module_id: String,
-    payload: LostFoundGeneratePayload,
-    save_path: String,
-) -> Result<GeneratedDocument, String> {
-    let module_id = sanitize_module_id(&module_id)?;
-    if module_id != LOST_FOUND_MODULE_ID {
-        return Err("Gerador ainda não implementado.".to_string());
-    }
-
-    let config = read_config(&app)?;
-    let module = module_config(&config, &module_id)?;
-    let template_path = PathBuf::from(&module.template_path);
-    let save_path = PathBuf::from(save_path);
-
-    if let Some(parent) = save_path.parent() {
-        fs::create_dir_all(parent).map_err(|err| err.to_string())?;
-    }
-
-    generate_docx_from_template(&template_path, &save_path, &payload)?;
-    Ok(GeneratedDocument {
-        path: save_path.to_string_lossy().to_string(),
-        officio_number: payload.officio_number,
-    })
-}
-
-#[tauri::command]
-fn append_excel_row(
-    app: AppHandle,
-    module_id: String,
-    payload: LostFoundGeneratePayload,
+fn append_excel_row_to_path(
+    excel_path: &str,
+    module: &ModuleConfig,
+    payload: &LostFoundGeneratePayload,
 ) -> Result<(), String> {
-    let module_id = sanitize_module_id(&module_id)?;
-    if module_id != LOST_FOUND_MODULE_ID {
-        return Err("Registro em Excel ainda não implementado para este módulo.".to_string());
-    }
-
-    let config = read_config(&app)?;
-    let excel_path = config.excel_path.trim();
-    if excel_path.is_empty() {
-        return Err("Caminho da planilha Excel não configurado.".to_string());
-    }
-
     let date = parse_date_br(&payload.officio_date)?;
     let sheet_name = find_sheet_by_year(excel_path, payload.year)?;
     let new_row = last_row_in_first_column(excel_path, &sheet_name)? + 1;
@@ -761,6 +784,71 @@ fn append_excel_row(
             err
         )
     })
+}
+
+#[tauri::command]
+fn get_next_officio(app: AppHandle, module_id: String, year: i32) -> Result<String, String> {
+    sanitize_module_id(&module_id)?;
+    let config = read_config(&app)?;
+    let module = module_config(&config, &module_id)?;
+    let excel_path = module.excel_path.trim();
+    if excel_path.is_empty() {
+        return Ok(format!("1/{}", year));
+    }
+
+    match find_sheet_by_year(excel_path, year) {
+        Ok(sheet_name) => next_number_from_sheet(excel_path, &sheet_name, year),
+        Err(_) => Ok(format!("1/{}", year)),
+    }
+}
+
+#[tauri::command]
+fn generate_document(
+    app: AppHandle,
+    module_id: String,
+    payload: LostFoundGeneratePayload,
+    save_path: String,
+) -> Result<GeneratedDocument, String> {
+    let module_id = sanitize_module_id(&module_id)?;
+    if module_id != LOST_FOUND_MODULE_ID {
+        return Err("Gerador ainda não implementado.".to_string());
+    }
+
+    let config = read_config(&app)?;
+    let module = module_config(&config, &module_id)?;
+    let template_path = PathBuf::from(&module.template_path);
+    let save_path = PathBuf::from(save_path);
+
+    if let Some(parent) = save_path.parent() {
+        fs::create_dir_all(parent).map_err(|err| err.to_string())?;
+    }
+
+    generate_docx_from_template(&template_path, &save_path, &payload)?;
+    Ok(GeneratedDocument {
+        path: save_path.to_string_lossy().to_string(),
+        officio_number: payload.officio_number,
+    })
+}
+
+#[tauri::command]
+fn append_excel_row(
+    app: AppHandle,
+    module_id: String,
+    payload: LostFoundGeneratePayload,
+) -> Result<(), String> {
+    let module_id = sanitize_module_id(&module_id)?;
+    if module_id != LOST_FOUND_MODULE_ID {
+        return Err("Registro em Excel ainda não implementado para este módulo.".to_string());
+    }
+
+    let config = read_config(&app)?;
+    let module = module_config(&config, &module_id)?;
+    let excel_path = module.excel_path.trim();
+    if excel_path.is_empty() {
+        return Err("Caminho da planilha Excel não configurado.".to_string());
+    }
+
+    append_excel_row_to_path(excel_path, module, &payload)
 }
 
 #[tauri::command]
@@ -870,6 +958,26 @@ fn delete_draft(app: AppHandle, module_id: String, draft_id: String) -> Result<(
 mod tests {
     use super::*;
 
+    struct TestDir(PathBuf);
+
+    impl TestDir {
+        fn new() -> Self {
+            let path = std::env::temp_dir().join(format!("gerador-oficios-{}", Uuid::new_v4()));
+            fs::create_dir_all(&path).unwrap();
+            Self(path)
+        }
+
+        fn join(&self, name: &str) -> PathBuf {
+            self.0.join(name)
+        }
+    }
+
+    impl Drop for TestDir {
+        fn drop(&mut self) {
+            let _ = fs::remove_dir_all(&self.0);
+        }
+    }
+
     fn sample_item() -> LostFoundItem {
         LostFoundItem {
             id: "item-1".to_string(),
@@ -889,6 +997,66 @@ mod tests {
             responsible: "Diego".to_string(),
             items: vec![sample_item()],
         }
+    }
+
+    fn sample_module_config() -> ModuleConfig {
+        ModuleConfig {
+            excel_path: String::new(),
+            default_save_dir: String::new(),
+            template_path: String::new(),
+            suggestions: Vec::new(),
+            excel_subject: Some("Encaminhamento de Achados e Perdidos".to_string()),
+            excel_destination: Some("Urbes".to_string()),
+            excel_columns: Some(ExcelColumnMap {
+                number: Some("A".to_string()),
+                subject: Some("B".to_string()),
+                date: Some("C".to_string()),
+                destination: Some("D".to_string()),
+                responsible: Some("E".to_string()),
+            }),
+        }
+    }
+
+    fn write_docx_fixture(path: &Path, document_xml: &str) {
+        let output = fs::File::create(path).unwrap();
+        let mut writer = ZipWriter::new(output);
+        let options = FileOptions::default();
+
+        writer.start_file("[Content_Types].xml", options).unwrap();
+        writer
+            .write_all(
+                br#"<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="xml" ContentType="application/xml"/></Types>"#,
+            )
+            .unwrap();
+        writer.add_directory("word", options).unwrap();
+        writer.start_file("word/document.xml", options).unwrap();
+        writer.write_all(document_xml.as_bytes()).unwrap();
+        writer.finish().unwrap();
+    }
+
+    fn read_docx_part(path: &Path, part_name: &str) -> String {
+        let input = fs::File::open(path).unwrap();
+        let mut archive = ZipArchive::new(input).unwrap();
+        let mut part = archive.by_name(part_name).unwrap();
+        let mut contents = String::new();
+        part.read_to_string(&mut contents).unwrap();
+        contents
+    }
+
+    fn write_excel_fixture(path: &Path) {
+        let mut workbook = umya_spreadsheet::new_file();
+        workbook
+            .get_sheet_mut(&0)
+            .unwrap()
+            .set_name("2026 Ofícios Emitidos");
+        let sheet = workbook
+            .get_sheet_by_name_mut("2026 Ofícios Emitidos")
+            .unwrap();
+
+        sheet.get_cell_mut("A1").set_value("Número");
+        sheet.get_cell_mut("A2").set_value("6/2026");
+        sheet.get_cell_mut("A3").set_value("2/2026");
+        umya_spreadsheet::writer::xlsx::write(&workbook, path).unwrap();
     }
 
     #[test]
@@ -921,6 +1089,92 @@ mod tests {
         assert!(xml.contains(r#"<w:numId w:val="9"/>"#));
         assert!(xml.contains(r#"Cartao &quot;Caixa&quot; - Diego (Azul)"#));
         assert!(!xml.contains("1. Cartao"));
+    }
+
+    #[test]
+    fn normalizes_docx_placeholders_split_across_runs() {
+        let xml = r#"
+            <w:p>
+                <w:r><w:t>{{DA</w:t></w:r>
+                <w:r><w:t>TA}}</w:t></w:r>
+            </w:p>
+            <w:p>
+                <w:r><w:t>{{OF</w:t></w:r>
+                <w:r><w:t>ICIO}}</w:t></w:r>
+            </w:p>
+        "#;
+
+        let normalized = normalize_docx_placeholders(xml).unwrap();
+
+        assert!(normalized.contains("{{DATA}}"));
+        assert!(normalized.contains("{{OFICIO}}"));
+    }
+
+    #[test]
+    fn generates_docx_and_replaces_split_tags() {
+        let dir = TestDir::new();
+        let template_path = dir.join("template.docx");
+        let output_path = dir.join("output.docx");
+        let document_xml = r#"
+            <?xml version="1.0" encoding="UTF-8"?>
+            <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+                <w:body>
+                    <w:p><w:r><w:t>Data: {{DA</w:t></w:r><w:r><w:t>TA}}</w:t></w:r></w:p>
+                    <w:p><w:r><w:t>Ofício: {{OF</w:t></w:r><w:r><w:t>ICIO}}</w:t></w:r></w:p>
+                    <w:p><w:pPr><w:spacing w:before="0" w:after="0"/></w:pPr><w:r><w:t>{{LISTA_</w:t></w:r><w:r><w:t>ITENS}}</w:t></w:r></w:p>
+                </w:body>
+            </w:document>
+        "#;
+        write_docx_fixture(&template_path, document_xml);
+
+        generate_docx_from_template(&template_path, &output_path, &sample_payload()).unwrap();
+
+        let xml = read_docx_part(&output_path, "word/document.xml");
+        assert!(xml.contains("5 de Junho de 2026"));
+        assert!(xml.contains("7/2026"));
+        assert!(xml.contains("1. Cartao &quot;Caixa&quot; - Diego (Azul)"));
+        assert!(!xml.contains("{{DATA}}"));
+        assert!(!xml.contains("{{OFICIO}}"));
+        assert!(!xml.contains("{{LISTA_ITENS}}"));
+    }
+
+    #[test]
+    fn detects_next_number_from_spreadsheet_fixture() {
+        let dir = TestDir::new();
+        let path = dir.join("controle.xlsx");
+        write_excel_fixture(&path);
+        let path_text = path.to_string_lossy();
+
+        let sheet_name = find_sheet_by_year(&path_text, 2026).unwrap();
+
+        assert_eq!(sheet_name, "2026 Ofícios Emitidos");
+        assert_eq!(
+            next_number_from_sheet(&path_text, &sheet_name, 2026).unwrap(),
+            "7/2026"
+        );
+    }
+
+    #[test]
+    fn appends_excel_row_to_configured_columns() {
+        let dir = TestDir::new();
+        let path = dir.join("controle.xlsx");
+        write_excel_fixture(&path);
+        let path_text = path.to_string_lossy();
+
+        append_excel_row_to_path(&path_text, &sample_module_config(), &sample_payload()).unwrap();
+
+        let mut workbook = open_workbook_auto(&*path_text).unwrap();
+        let range = workbook.worksheet_range("2026 Ofícios Emitidos").unwrap();
+        let row = range.rows().nth(3).unwrap();
+        assert_eq!(cell_to_string(row.get(0)), "7/2026");
+        assert_eq!(
+            cell_to_string(row.get(1)),
+            "Encaminhamento de Achados e Perdidos"
+        );
+        assert_eq!(cell_to_string(row.get(2)), "05/06/2026");
+        assert_eq!(cell_to_string(row.get(3)), "Urbes");
+        assert_eq!(cell_to_string(row.get(4)), "Diego");
+        assert!(dir.join(".backups").is_dir());
     }
 }
 
