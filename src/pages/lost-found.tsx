@@ -13,8 +13,7 @@ import {
 } from "../modules/lost-found/format";
 import { validateLostFoundPayload } from "../modules/lost-found/module";
 import {
-  appendExcelRow,
-  generateDocument,
+  generateDocumentAndRegister,
   getDefaultSaveFilename,
   getNextOfficio,
   pickSaveFile,
@@ -91,7 +90,7 @@ export function LostFoundPage({ context }: { context: AppContext }) {
             disabled={!canClear}
             iconName="eraser"
             label="Limpar itens"
-            onClick={() => clearItems(context)}
+            onClick={() => void clearItems(context)}
           />
         </>
       }
@@ -450,6 +449,7 @@ export function applyLostFoundDraft(
     ...createLostFoundState(),
     ...draft.payload,
     currentDraftId: draft.draftId,
+    currentDraftName: draft.name,
     draftName: draft.name,
   };
   if (typeof context.state.lostFound.documentNameLocked !== "boolean") {
@@ -575,11 +575,17 @@ function removeItem(context: AppContext, id: string) {
   context.renderApp();
 }
 
-function clearItems(context: AppContext) {
+async function clearItems(context: AppContext) {
   if (!context.state.lostFound.items.length) {
     return;
   }
-  if (!window.confirm(MESSAGES.confirmClearItems)) {
+  const accepted = await context.confirm({
+    title: "Limpar itens",
+    message: MESSAGES.confirmClearItems,
+    confirmLabel: "Limpar",
+    tone: "danger",
+  });
+  if (!accepted) {
     return;
   }
   context.state.lostFound.items = [];
@@ -628,14 +634,20 @@ async function handleSaveDraft(context: AppContext) {
   context.renderApp();
 
   try {
+    const draftName = state.lostFound.draftName.trim() || "Achados e Perdidos";
+    const draftNameChanged =
+      Boolean(state.lostFound.currentDraftId) &&
+      Boolean(state.lostFound.currentDraftName) &&
+      draftName !== state.lostFound.currentDraftName;
     const saved = await saveDraft<LostFoundDraftPayload>(LOST_FOUND_MODULE_ID, {
-      draftId: state.lostFound.currentDraftId,
+      draftId: draftNameChanged ? undefined : state.lostFound.currentDraftId,
       moduleId: LOST_FOUND_MODULE_ID,
-      name: state.lostFound.draftName.trim() || "Achados e Perdidos",
+      name: draftName,
       payload: buildLostFoundDraftPayload(context),
     });
 
     state.lostFound.currentDraftId = saved.draftId;
+    state.lostFound.currentDraftName = saved.name;
     state.lostFound.draftName = saved.name;
     context.showToast({ tone: "success", message: MESSAGES.draftSaved });
   } catch (error) {
@@ -650,7 +662,7 @@ async function handleSaveDraft(context: AppContext) {
 }
 
 async function handleGenerate(context: AppContext) {
-  // Ordem importa: gerar DOCX primeiro, registrar Excel depois, limpar só no sucesso.
+  // Backend valida, gera temporário, registra Excel e só então publica o DOCX final.
   const { state } = context;
   const payload = buildLostFoundPayload(context);
   const validation = validateLostFoundPayload(payload);
@@ -671,11 +683,8 @@ async function handleGenerate(context: AppContext) {
       return;
     }
 
-    const generated = await measureAsync("generate_document", () =>
-      generateDocument(LOST_FOUND_MODULE_ID, payload, savePath),
-    );
-    await measureAsync("append_excel_row", () =>
-      appendExcelRow(LOST_FOUND_MODULE_ID, payload),
+    const generated = await measureAsync("generate_document_and_register", () =>
+      generateDocumentAndRegister(LOST_FOUND_MODULE_ID, payload, savePath),
     );
 
     invalidateNextOfficioCache(context);
@@ -683,6 +692,7 @@ async function handleGenerate(context: AppContext) {
     state.lostFound.responsible = "";
     state.lostFound.documentNameLocked = true;
     state.lostFound.currentDraftId = undefined;
+    state.lostFound.currentDraftName = undefined;
     state.lostFound.draftName = "Achados e Perdidos";
     resetItemForm(context);
 

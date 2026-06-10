@@ -1,4 +1,5 @@
 import { LOST_FOUND_MODULE_ID, LostFoundGeneratePayload } from "../../types";
+import type { GeneratorModuleAdapter } from "../contract";
 import { defaultLostFoundDocumentName, isValidBrDate } from "./format";
 
 // Adapter descreve a regra mínima do módulo para geração e validação.
@@ -7,7 +8,7 @@ export const lostFoundModuleAdapter = {
   defaultDraftName: "Achados e Perdidos",
   defaultDocumentName: defaultLostFoundDocumentName,
   validate: validateLostFoundPayload,
-};
+} satisfies GeneratorModuleAdapter<LostFoundGeneratePayload>;
 
 export function validateLostFoundPayload(payload: LostFoundGeneratePayload) {
   // Validação de UI espelha os erros principais do backend antes de abrir diálogo.

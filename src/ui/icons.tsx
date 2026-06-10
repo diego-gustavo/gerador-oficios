@@ -22,6 +22,7 @@ import {
   Save,
   Settings,
   Trash2,
+  TriangleAlert,
   X,
   type IconNode,
 } from "lucide";
@@ -49,6 +50,7 @@ const iconNodes: Record<string, IconNode> = {
   save: Save,
   settings: Settings,
   "trash-2": Trash2,
+  "triangle-alert": TriangleAlert,
   x: X,
 };
 

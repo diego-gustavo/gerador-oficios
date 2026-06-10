@@ -1,8 +1,9 @@
-import { GeneratorModule, LOST_FOUND_MODULE_ID } from "../types";
+import { LOST_FOUND_MODULE_ID } from "../types";
+import { defineGeneratorModule, type GeneratorModule } from "./contract";
 
 // Registro declarativo: novas telas entram aqui antes de ganhar backend próprio.
 export const generatorModules: GeneratorModule[] = [
-  {
+  defineGeneratorModule({
     moduleId: LOST_FOUND_MODULE_ID,
     name: "Achados e Perdidos",
     shortName: "Achados",
@@ -30,7 +31,7 @@ export const generatorModules: GeneratorModule[] = [
       "Use rascunhos para salvar uma emissão em andamento.",
       "Gere o documento e registre a emissão na planilha configurada.",
     ],
-  },
+  }),
 ];
 
 export function getModule(moduleId: string) {

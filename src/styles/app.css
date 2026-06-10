@@ -58,10 +58,17 @@
   box-sizing: border-box;
 }
 
+html,
+body,
+#root {
+  height: 100%;
+}
+
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  overflow: hidden;
   background: var(--app-bg);
   color: var(--app-text);
   font-family: var(--app-font);
@@ -85,12 +92,16 @@ button:disabled {
 }
 
 .app-shell {
-  min-height: 100vh;
+  height: 100vh;
+  min-height: 0;
+  overflow: hidden;
   display: grid;
   grid-template-columns: 238px minmax(0, 1fr);
 }
 
 .sidebar {
+  height: 100vh;
+  overflow-y: auto;
   background: var(--app-panel);
   border-right: 1px solid var(--app-line);
   padding: 18px 14px;
@@ -190,11 +201,13 @@ button:disabled {
 
 .workspace {
   min-width: 0;
+  min-height: 0;
   display: grid;
   grid-template-rows: 58px 1fr;
 }
 
 .topbar {
+  min-width: 0;
   background: var(--app-panel);
   border-bottom: 1px solid var(--app-line);
   display: flex;
@@ -205,11 +218,25 @@ button:disabled {
 }
 
 .topbar-title {
+  min-width: 0;
+  flex: 1 1 auto;
   display: inline-flex;
   align-items: center;
   gap: 8px;
   color: var(--app-muted);
   font-weight: 700;
+}
+
+.topbar-title span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#toast-slot {
+  min-width: 0;
+  flex: 0 1 auto;
 }
 
 .toast {
@@ -237,8 +264,78 @@ button:disabled {
   border-color: var(--app-danger);
 }
 
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgb(15 23 42 / 46%);
+}
+
+.confirm-modal {
+  width: min(430px, 100%);
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 14px;
+  border: 1px solid var(--app-line);
+  border-radius: var(--app-radius);
+  background: var(--app-panel);
+  box-shadow: var(--app-shadow);
+  padding: 16px;
+}
+
+.confirm-modal-icon {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--app-radius);
+  background: var(--app-panel-soft);
+  color: var(--app-brand-strong);
+}
+
+.confirm-modal.danger .confirm-modal-icon {
+  color: var(--app-danger);
+}
+
+.confirm-modal-body {
+  min-width: 0;
+}
+
+.confirm-modal-body h2 {
+  margin: 0;
+  color: var(--app-brand-strong);
+  font-size: 1rem;
+  line-height: 1.25;
+}
+
+.confirm-modal-body p {
+  margin: 6px 0 0;
+  color: var(--app-muted);
+  line-height: 1.45;
+}
+
+.confirm-modal-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.icon-button.danger.filled {
+  background: var(--app-danger);
+  color: var(--app-white);
+}
+
+.icon-button.danger.filled:hover {
+  background: #a8322e;
+}
+
 .page-frame {
   min-width: 0;
+  min-height: 0;
   overflow: auto;
   padding: 22px;
 }
@@ -763,8 +860,7 @@ button:focus-visible {
   }
 
   .brand div,
-  .nav-button span,
-  .topbar-title span {
+  .nav-button span {
     display: none;
   }
 
@@ -807,12 +903,15 @@ button:focus-visible {
 
   .app-shell {
     grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
   }
 
   .sidebar {
     position: sticky;
     top: 0;
     z-index: 30;
+    height: auto;
+    overflow: visible;
     border-right: 0;
     border-bottom: 1px solid var(--app-line);
     padding: 10px;
@@ -834,17 +933,34 @@ button:focus-visible {
   }
 
   .workspace {
-    grid-template-rows: auto 1fr;
+    min-height: 0;
+    grid-template-rows: auto minmax(0, 1fr);
   }
 
   .topbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
     min-height: 52px;
     padding: 8px 12px;
+  }
+
+  #toast-slot {
+    width: 100%;
   }
 
   .toast {
     max-width: 100%;
     white-space: normal;
+  }
+
+  .confirm-modal {
+    grid-template-columns: 1fr;
+  }
+
+  .confirm-modal-actions {
+    display: grid;
+    grid-template-columns: 1fr;
   }
 
   .page-frame {

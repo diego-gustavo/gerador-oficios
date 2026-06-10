@@ -11,7 +11,7 @@ import { HelpPage } from "./pages/help";
 import { LostFoundPage, refreshNextOfficio } from "./pages/lost-found";
 import { SettingsPage } from "./pages/settings";
 import { loadConfig } from "./services/tauri";
-import type { AppRoute, ToastState } from "./types";
+import type { AppRoute, ConfirmationRequest, ToastState } from "./types";
 import { Icon } from "./ui/icons";
 
 // Entrada React: mantém shell, navegação por hash e ciclo de renderização do app.
@@ -27,6 +27,7 @@ function App() {
   const stateRef = useRef(
     createInitialState(routeByHash[window.location.hash] || "generators"),
   );
+  const confirmationResolver = useRef<((accepted: boolean) => void) | null>(null);
   const toastTimer = useRef<number | null>(null);
   const contextRef = useRef<AppContext | null>(null);
   const [, forceRender] = useReducer((value: number) => value + 1, 0);
@@ -34,6 +35,34 @@ function App() {
   const renderApp = useCallback(() => {
     forceRender();
   }, []);
+
+  const closeConfirmation = useCallback(
+    (accepted: boolean) => {
+      stateRef.current.confirmation = null;
+      renderApp();
+
+      const resolver = confirmationResolver.current;
+      confirmationResolver.current = null;
+      resolver?.(accepted);
+    },
+    [renderApp],
+  );
+
+  const confirm = useCallback(
+    (request: ConfirmationRequest) => {
+      confirmationResolver.current?.(false);
+      return new Promise<boolean>((resolve) => {
+        confirmationResolver.current = resolve;
+        stateRef.current.confirmation = {
+          cancelLabel: "Cancelar",
+          tone: "default",
+          ...request,
+        };
+        renderApp();
+      });
+    },
+    [renderApp],
+  );
 
   const applyAppearance = useCallback(() => {
     // Tema, contraste e escala são aplicados no elemento raiz para o CSS inteiro.
@@ -106,13 +135,25 @@ function App() {
     () => ({
       state: stateRef.current,
       applyAppearance,
+      confirm,
       navigate,
       renderApp,
       showToast,
     }),
-    [applyAppearance, navigate, renderApp, showToast],
+    [applyAppearance, confirm, navigate, renderApp, showToast],
   );
   contextRef.current = context;
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape" && stateRef.current.confirmation) {
+        closeConfirmation(false);
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [closeConfirmation]);
 
   useEffect(() => {
     function handleHashChange() {
@@ -152,6 +193,8 @@ function App() {
           message:
             error instanceof Error
               ? error.message
+              : typeof error === "string" && error.trim()
+                ? error
               : "Configurações padrão carregadas.",
         });
       });
@@ -192,6 +235,7 @@ function App() {
           <CurrentPage context={context} />
         </div>
       </main>
+      <ConfirmDialog request={context.state.confirmation} onClose={closeConfirmation} />
     </div>
   );
 }
@@ -221,6 +265,57 @@ function Toast({ toast }: { toast: ToastState | null }) {
   return (
     <div id="toast-slot" role="status" aria-live="polite">
       {toast ? <div className={`toast ${toast.tone}`}>{toast.message}</div> : null}
+    </div>
+  );
+}
+
+type ConfirmDialogProps = {
+  onClose(accepted: boolean): void;
+  request: ConfirmationRequest | null;
+};
+
+function ConfirmDialog({ onClose, request }: ConfirmDialogProps) {
+  if (!request) {
+    return null;
+  }
+
+  const titleId = "confirm-dialog-title";
+  const descriptionId = "confirm-dialog-description";
+  const danger = request.tone === "danger";
+
+  return (
+    <div className="modal-backdrop" role="presentation" onMouseDown={() => onClose(false)}>
+      <section
+        className={`confirm-modal${danger ? " danger" : ""}`}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        aria-describedby={descriptionId}
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <div className="confirm-modal-icon" aria-hidden="true">
+          <Icon name={danger ? "triangle-alert" : "circle-help"} />
+        </div>
+        <div className="confirm-modal-body">
+          <h2 id={titleId}>{request.title}</h2>
+          <p id={descriptionId}>{request.message}</p>
+        </div>
+        <div className="confirm-modal-actions">
+          <button type="button" className="icon-button" onClick={() => onClose(false)}>
+            <Icon name="x" />
+            <span>{request.cancelLabel || "Cancelar"}</span>
+          </button>
+          <button
+            type="button"
+            className={`icon-button${danger ? " danger filled" : " primary"}`}
+            autoFocus
+            onClick={() => onClose(true)}
+          >
+            <Icon name="check" />
+            <span>{request.confirmLabel}</span>
+          </button>
+        </div>
+      </section>
     </div>
   );
 }

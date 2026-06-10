@@ -30,3 +30,28 @@
 - `validateLostFoundPayload`: valida payload antes de gerar.
 - `generate_docx_from_template`: substitui tags no DOCX.
 - `append_excel_row_to_path`: registra emissão na planilha.
+
+## Contrato de Módulos
+
+- `defineGeneratorModule`: tipa os metadados que aparecem em navegação, ajuda, configurações e registry.
+- `defineModuleFixture`: padroniza payload exemplo, tags obrigatórias e nome esperado de documento.
+- `validateGeneratorModuleContract`: garante que cada módulo registrado tenha fixture e tags alinhadas.
+- `GeneratorModuleAdapter`: contrato das regras puras de cada gerador, com nome padrão e validação.
+
+## Confirmações
+
+- `confirm` em `AppContext`: abre modal próprio e retorna `Promise<boolean>`.
+- `ConfirmDialog`: renderiza o modal acessível, fecha com cancelar, confirmar, clique fora ou `Esc`.
+- `closeConfirmation`: resolve a promessa pendente e limpa o estado da confirmação.
+
+## Geração Segura
+
+- `validate_lost_found_payload`: valida número, ano, data, responsável e itens no backend.
+- `validate_template_before_generation`: verifica se o template Word existe e é arquivo.
+- `validate_excel_before_generation`: confere caminho, permissão de escrita, aba do ano e última linha.
+- `prepare_docx_save_path`: garante que o destino Word possa ser criado ou substituído.
+- `generate_document_and_register_to_paths`: gera DOCX temporário, registra Excel e só então copia para o destino final.
+
+## Smoke Local
+
+- `scripts/smoke-browser.mjs`: sobe `vite preview`, abre Chrome/Edge em modo headless e verifica se a navegação principal aparece no DOM renderizado.
