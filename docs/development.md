@@ -1,48 +1,32 @@
-# Desenvolvimento local
+# Desenvolvimento
 
-## Requisitos
+## Arquitetura
 
-- Node.js LTS.
-- Rust stable.
-- Tauri CLI via `@tauri-apps/cli`.
-- Windows: Visual Studio Build Tools com componente Visual C++ para fornecer `link.exe`.
+- `src/main.tsx`: entrada React, shell, rotas e carregamento inicial.
+- `src/app/`: estado global, contexto, mensagens, rotas e logger.
+- `src/pages/`: telas React.
+- `src/ui/`: componentes visuais pequenos e ícones.
+- `src/modules/`: regras puras e testáveis de cada gerador.
+- `src/services/tauri.ts`: ponte entre React e comandos Tauri.
+- `src/styles/app.css`: visual próprio, sem Bootstrap.
+- `src-tauri/src/lib.rs`: backend local em Rust.
 
-## Scripts
+## Fluxo Principal
 
-- `npm.cmd install`: instala dependencias frontend.
-- `npm.cmd run dev`: inicia Vite em `http://127.0.0.1:1420`.
-- `npm.cmd run typecheck`: valida TypeScript sem gerar build.
-- `npm.cmd run test`: roda testes unitarios TypeScript.
-- `npm.cmd run tauri:dev`: abre o app desktop Tauri.
-- `npm.cmd run build`: typecheck e build Vite.
-- `npm.cmd run tauri:build`: empacota o app desktop.
+1. React inicia em `main.tsx`.
+2. `createInitialState` monta estado padrão.
+3. A rota vem do hash da URL.
+4. A página altera o estado e chama `renderApp`.
+5. Serviços chamam Tauri quando o app roda no desktop.
+6. Rust gera DOCX, edita Excel, salva config e rascunhos.
 
-## Logs tecnicos
+## Funções-Chave
 
-Para medir tempos de operacoes principais no console do WebView:
-
-```js
-localStorage.setItem("gerador-oficios:debug", "1")
-```
-
-Para desativar:
-
-```js
-localStorage.removeItem("gerador-oficios:debug")
-```
-
-## Estrutura de módulo
-
-Novos módulos devem ser adicionados em `src/modules/registry.ts`. O registro define nome, rota, template, tags obrigatórias, assunto/destino de planilha, colunas Excel e passos de ajuda.
-
-Templates devem ficar em:
-
-```text
-src-tauri/resources/templates/{moduleId}/template.docx
-```
-
-## Ativos centralizados
-
-- Template editável do módulo Achados e Perdidos: `src-tauri/resources/templates/achados-e-perdidos/template.docx`.
-- Ícone do aplicativo e favicon: `public/img/favicon.ico` e `public/img/favicon.png`.
-- O Tauri usa esses mesmos arquivos no build; não mantenha cópias em `src-tauri/icons` nem `template.docx` na raiz.
+- `createLostFoundState`: estado inicial do módulo.
+- `normalizeConfig`: migra e completa configuração.
+- `refreshNextOfficio`: consulta/cacheia próximo número.
+- `handleGenerate`: valida, gera DOCX, registra Excel e limpa formulário.
+- `formatLostFoundItem`: monta texto final de cada item.
+- `validateLostFoundPayload`: valida payload antes de gerar.
+- `generate_docx_from_template`: substitui tags no DOCX.
+- `append_excel_row_to_path`: registra emissão na planilha.

@@ -3,6 +3,7 @@ name = "gerador-oficios"
 version = "0.1.0"
 description = "Gerador modular de ofícios BRT"
 authors = ["BRT Sorocaba"]
+# Rust 2021 mantém compatibilidade com a toolchain atual do Tauri 2.
 edition = "2021"
 
 [lib]

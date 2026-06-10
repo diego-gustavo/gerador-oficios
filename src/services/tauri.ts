@@ -7,10 +7,12 @@ import {
   ModuleDraft,
 } from "../types";
 
+// Ponte única entre React e comandos Tauri, com fallback web para desenvolvimento.
 const CONFIG_KEY = "gerador-oficios:config";
 const DRAFTS_KEY = "gerador-oficios:drafts";
 
 function isTauriRuntime() {
+  // Tauri injeta __TAURI_INTERNALS__; no navegador comum usamos localStorage.
   return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 }
 
@@ -47,6 +49,7 @@ function writeLocalDrafts(drafts: ModuleDraft[]) {
 }
 
 export async function loadConfig() {
+  // Sempre normaliza para aceitar configs antigas ou incompletas.
   if (isTauriRuntime()) {
     return normalizeConfig(await invoke<AppConfig>("load_config"));
   }
@@ -77,6 +80,7 @@ export async function pickFolder() {
 }
 
 export async function pickSaveFile(defaultFileName: string, defaultDir?: string) {
+  // No navegador não há diálogo nativo; a ação é cancelada silenciosamente.
   if (!isTauriRuntime()) {
     return null;
   }
@@ -98,6 +102,7 @@ export async function getDefaultSaveFilename(payload: LostFoundGeneratePayload) 
 }
 
 function sanitizeFileName(value: string) {
+  // Mantém o comportamento do backend para pré-visualizar nomes no navegador.
   return value.trim().replace(/[<>:"/\\|?*\u0000-\u001f]/g, " ").replace(/\s+/g, " ");
 }
 
@@ -143,6 +148,7 @@ export async function listDrafts(moduleId?: string) {
 }
 
 export async function saveDraft<TPayload>(moduleId: string, draft: ModuleDraft<TPayload>) {
+  // Fallback web conserva o mesmo formato JSON salvo pelo backend Tauri.
   if (isTauriRuntime()) {
     return invoke<ModuleDraft<TPayload>>("save_draft", {
       moduleId,

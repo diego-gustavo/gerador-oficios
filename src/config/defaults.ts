@@ -1,6 +1,7 @@
 import { AppConfig, LOST_FOUND_MODULE_ID } from "../types";
 import { generatorModules } from "../modules/registry";
 
+// Defaults operacionais usados quando ainda não existe config salva.
 const defaultExcelPath =
   "J:/Usuários/Documentos Gerais/Controle Ofícios - BRT Operação.xlsx";
 const defaultSaveDir =
@@ -25,6 +26,7 @@ export const defaultSuggestions = [
   "Outros",
 ];
 
+// Cada módulo recebe seu próprio bloco de configuração para crescer sem globais.
 export const defaultConfig: AppConfig = {
   theme: "system",
   interfaceScale: 100,
@@ -51,8 +53,7 @@ type LegacyAppConfig = Partial<AppConfig> & {
 };
 
 export function normalizeConfig(config: LegacyAppConfig | null | undefined): AppConfig {
-  // Configurações antigas tinham caminhos globais. A normalização migra esses
-  // valores para o módulo para manter um único card completo por gerador.
+  // Migra config antiga com caminhos globais e preenche campos novos por módulo.
   const legacyExcelPath = config?.excelPath?.trim();
   const legacyDefaultSaveDir = config?.defaultSaveDir?.trim();
   const modules = Object.fromEntries(

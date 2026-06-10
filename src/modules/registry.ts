@@ -1,5 +1,6 @@
 import { GeneratorModule, LOST_FOUND_MODULE_ID } from "../types";
 
+// Registro declarativo: novas telas entram aqui antes de ganhar backend próprio.
 export const generatorModules: GeneratorModule[] = [
   {
     moduleId: LOST_FOUND_MODULE_ID,
@@ -33,5 +34,6 @@ export const generatorModules: GeneratorModule[] = [
 ];
 
 export function getModule(moduleId: string) {
+  // Helper usado por testes e futuras integrações para resolver metadados.
   return generatorModules.find((module) => module.moduleId === moduleId);
 }
