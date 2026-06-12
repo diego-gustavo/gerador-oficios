@@ -3,9 +3,10 @@ import type { AppContext } from "../app/context";
 import { MESSAGES, errorMessage } from "../app/messages";
 import { cloneConfig } from "../app/state";
 import { defaultConfig, normalizeConfig } from "../config/defaults";
+import type { GeneratorModule } from "../modules/contract";
 import { generatorModules } from "../modules/registry";
 import { pickFile, pickFolder, saveConfig } from "../services/tauri";
-import type { AppConfig, ExcelColumnMap, GeneratorModule } from "../types";
+import type { AppConfig, ExcelColumnMap } from "../types";
 import { ActionButton, Field, TextAreaField } from "../ui/components";
 
 // Configurações usam um draft editável; só normalizam e salvam ao confirmar.
@@ -299,7 +300,13 @@ async function handleSaveConfig(context: AppContext) {
 }
 
 async function handleResetConfig(context: AppContext) {
-  if (!window.confirm(MESSAGES.confirmResetSettings)) {
+  const accepted = await context.confirm({
+    title: "Restaurar configurações",
+    message: MESSAGES.confirmResetSettings,
+    confirmLabel: "Restaurar",
+    tone: "danger",
+  });
+  if (!accepted) {
     return;
   }
 

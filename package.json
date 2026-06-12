@@ -1,6 +1,6 @@
 {
   "name": "gerador-oficios",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -8,6 +8,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "build": "tsc --noEmit && vite build",
+    "smoke:browser": "tsc --noEmit && vite build && node scripts/smoke-browser.mjs",
     "preview": "vite preview --host 127.0.0.1",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build"

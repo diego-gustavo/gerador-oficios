@@ -206,7 +206,13 @@ async function removeDraft(context: AppContext, draftId: string) {
   if (!draft?.draftId) {
     return;
   }
-  if (!window.confirm(`Excluir o rascunho "${draft.name}"?`)) {
+  const accepted = await context.confirm({
+    title: "Excluir rascunho",
+    message: `Excluir o rascunho "${draft.name}"?`,
+    confirmLabel: "Excluir",
+    tone: "danger",
+  });
+  if (!accepted) {
     return;
   }
 

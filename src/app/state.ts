@@ -6,6 +6,7 @@ import {
 import {
   AppConfig,
   AppRoute,
+  ConfirmationRequest,
   LOST_FOUND_MODULE_ID,
   LostFoundDraftPayload,
   ModuleDraft,
@@ -16,6 +17,7 @@ import {
 export interface LostFoundState extends LostFoundDraftPayload {
   busy: boolean;
   currentDraftId?: string;
+  currentDraftName?: string;
   draftName: string;
   editingId: string | null;
   itemName: string;
@@ -33,6 +35,7 @@ export interface NextOfficioCacheEntry {
 // Estado global do frontend. Cada página usa um recorte, mas tudo vive aqui.
 export interface AppState {
   config: AppConfig;
+  confirmation: ConfirmationRequest | null;
   drafts: ModuleDraft[];
   draftsFilter: string;
   draftsSearch: string;
@@ -59,6 +62,7 @@ export function createLostFoundState(): LostFoundState {
     responsible: "",
     items: [],
     busy: false,
+    currentDraftName: undefined,
     draftName: "Achados e Perdidos",
     editingId: null,
     itemName: "",
@@ -73,6 +77,7 @@ export function createInitialState(route: AppRoute): AppState {
   // Defaults permitem abrir o app no navegador mesmo sem backend Tauri.
   return {
     config: defaultConfig,
+    confirmation: null,
     drafts: [],
     draftsFilter: LOST_FOUND_MODULE_ID,
     draftsSearch: "",

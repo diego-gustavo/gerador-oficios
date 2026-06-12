@@ -678,6 +678,158 @@ fn save_filename(payload: &LostFoundGeneratePayload) -> Result<String, String> {
     ))
 }
 
+fn validate_lost_found_payload(payload: &LostFoundGeneratePayload) -> Result<(), String> {
+    let (number, year) = payload
+        .officio_number
+        .split_once('/')
+        .ok_or_else(|| "Número do ofício inválido.".to_string())?;
+    let number_is_valid = number
+        .trim()
+        .parse::<u32>()
+        .map(|value| value > 0)
+        .unwrap_or(false);
+    let year_is_valid = year
+        .trim()
+        .parse::<i32>()
+        .map(|value| value == payload.year)
+        .unwrap_or(false);
+
+    if !number_is_valid || !year_is_valid {
+        return Err("Número do ofício inválido.".to_string());
+    }
+    parse_date_br(&payload.officio_date)?;
+    if payload.responsible.trim().is_empty() {
+        return Err("Informe o responsável.".to_string());
+    }
+    if payload.items.is_empty() {
+        return Err("Adicione pelo menos um item.".to_string());
+    }
+    if payload.items.iter().any(|item| item.item.trim().is_empty()) {
+        return Err("Há item sem nome na lista.".to_string());
+    }
+
+    Ok(())
+}
+
+fn validate_template_before_generation(template_path: &Path) -> Result<(), String> {
+    if !template_path.exists() {
+        return Err("Template Word não encontrado.".to_string());
+    }
+    if !template_path.is_file() {
+        return Err("O caminho do template Word não aponta para um arquivo.".to_string());
+    }
+    Ok(())
+}
+
+fn validate_excel_before_generation(excel_path: &str, year: i32) -> Result<(), String> {
+    if excel_path.trim().is_empty() {
+        return Err("Caminho da planilha Excel não configurado.".to_string());
+    }
+
+    let path = Path::new(excel_path);
+    if !path.exists() {
+        return Err("Planilha Excel não encontrada.".to_string());
+    }
+    if !path.is_file() {
+        return Err("O caminho da planilha Excel não aponta para um arquivo.".to_string());
+    }
+
+    fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(path)
+        .map_err(|err| {
+            format!(
+                "Não foi possível acessar a planilha para escrita. Feche o arquivo se ele estiver aberto e tente novamente. Detalhes: {}",
+                err
+            )
+        })?;
+
+    let sheet_name = find_sheet_by_year(excel_path, year)?;
+    last_row_in_first_column(excel_path, &sheet_name)?;
+    Ok(())
+}
+
+fn prepare_docx_save_path(save_path: &Path) -> Result<(), String> {
+    if save_path.file_name().is_none() {
+        return Err("Caminho de destino do Word inválido.".to_string());
+    }
+
+    if let Some(parent) = save_path
+        .parent()
+        .filter(|path| !path.as_os_str().is_empty())
+    {
+        if parent.exists() && !parent.is_dir() {
+            return Err("A pasta de destino do Word é inválida.".to_string());
+        }
+        fs::create_dir_all(parent)
+            .map_err(|err| format!("Não foi possível criar a pasta de destino: {}", err))?;
+    }
+
+    if save_path.exists() {
+        if save_path.is_dir() {
+            return Err("O destino do Word aponta para uma pasta.".to_string());
+        }
+        fs::OpenOptions::new()
+            .write(true)
+            .open(save_path)
+            .map_err(|err| {
+                format!(
+                    "Não foi possível substituir o arquivo Word selecionado. Feche o arquivo se ele estiver aberto e tente novamente. Detalhes: {}",
+                    err
+                )
+            })?;
+    }
+
+    Ok(())
+}
+
+fn temporary_docx_path(save_path: &Path) -> Result<PathBuf, String> {
+    let parent = save_path
+        .parent()
+        .filter(|path| !path.as_os_str().is_empty())
+        .unwrap_or_else(|| Path::new("."));
+    let file_name = save_path
+        .file_name()
+        .and_then(|value| value.to_str())
+        .ok_or_else(|| "Nome do arquivo Word inválido.".to_string())?;
+
+    Ok(parent.join(format!(".{}.{}.tmp.docx", file_name, Uuid::new_v4())))
+}
+
+fn generate_document_and_register_to_paths(
+    template_path: &Path,
+    excel_path: &str,
+    module: &ModuleConfig,
+    payload: &LostFoundGeneratePayload,
+    save_path: &Path,
+) -> Result<GeneratedDocument, String> {
+    validate_lost_found_payload(payload)?;
+    validate_template_before_generation(template_path)?;
+    validate_excel_before_generation(excel_path, payload.year)?;
+    prepare_docx_save_path(save_path)?;
+
+    let temp_path = temporary_docx_path(save_path)?;
+    let result = (|| {
+        generate_docx_from_template(template_path, &temp_path, payload)?;
+        append_excel_row_to_path(excel_path, module, payload)?;
+        fs::copy(&temp_path, save_path).map(|_| ()).map_err(|err| {
+            format!(
+                "Não foi possível salvar o arquivo Word no local escolhido: {}",
+                err
+            )
+        })?;
+
+        Ok(GeneratedDocument {
+            path: save_path.to_string_lossy().to_string(),
+            officio_number: payload.officio_number.clone(),
+        })
+    })();
+
+    let _ = fs::remove_file(&temp_path);
+    result
+}
+
 #[tauri::command]
 fn load_config(app: AppHandle) -> Result<AppConfig, String> {
     let config = read_config(&app)?;
@@ -841,6 +993,32 @@ fn generate_document(
         path: save_path.to_string_lossy().to_string(),
         officio_number: payload.officio_number,
     })
+}
+
+#[tauri::command]
+fn generate_document_and_register(
+    app: AppHandle,
+    module_id: String,
+    payload: LostFoundGeneratePayload,
+    save_path: String,
+) -> Result<GeneratedDocument, String> {
+    let module_id = sanitize_module_id(&module_id)?;
+    if module_id != LOST_FOUND_MODULE_ID {
+        return Err("Gerador ainda não implementado.".to_string());
+    }
+
+    let config = read_config(&app)?;
+    let module = module_config(&config, &module_id)?;
+    let template_path = PathBuf::from(&module.template_path);
+    let save_path = PathBuf::from(save_path);
+
+    generate_document_and_register_to_paths(
+        &template_path,
+        module.excel_path.trim(),
+        module,
+        &payload,
+        &save_path,
+    )
 }
 
 #[tauri::command]
@@ -1189,6 +1367,76 @@ mod tests {
         assert_eq!(cell_to_string(row.get(4)), "Diego");
         assert!(dir.join(".backups").is_dir());
     }
+
+    #[test]
+    fn generate_and_register_publishes_docx_after_excel_success() {
+        let dir = TestDir::new();
+        let template_path = dir.join("template.docx");
+        let excel_path = dir.join("controle.xlsx");
+        let output_path = dir.join("saida.docx");
+        let document_xml = r#"
+            <?xml version="1.0" encoding="UTF-8"?>
+            <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+                <w:body>
+                    <w:p><w:r><w:t>Data: {{DATA}}</w:t></w:r></w:p>
+                    <w:p><w:r><w:t>Ofício: {{OFICIO}}</w:t></w:r></w:p>
+                    <w:p><w:r><w:t>{{LISTA_ITENS}}</w:t></w:r></w:p>
+                </w:body>
+            </w:document>
+        "#;
+        write_docx_fixture(&template_path, document_xml);
+        write_excel_fixture(&excel_path);
+        let excel_path_text = excel_path.to_string_lossy();
+
+        let generated = generate_document_and_register_to_paths(
+            &template_path,
+            &excel_path_text,
+            &sample_module_config(),
+            &sample_payload(),
+            &output_path,
+        )
+        .unwrap();
+
+        assert_eq!(generated.officio_number, "7/2026");
+        assert!(output_path.exists());
+        let xml = read_docx_part(&output_path, "word/document.xml");
+        assert!(xml.contains("7/2026"));
+
+        let mut workbook = open_workbook_auto(&*excel_path_text).unwrap();
+        let range = workbook.worksheet_range("2026 Ofícios Emitidos").unwrap();
+        let row = range.rows().nth(3).unwrap();
+        assert_eq!(cell_to_string(row.get(0)), "7/2026");
+    }
+
+    #[test]
+    fn generate_and_register_does_not_publish_docx_when_excel_fails_preflight() {
+        let dir = TestDir::new();
+        let template_path = dir.join("template.docx");
+        let missing_excel_path = dir.join("controle-ausente.xlsx");
+        let output_path = dir.join("saida.docx");
+        let document_xml = r#"
+            <?xml version="1.0" encoding="UTF-8"?>
+            <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+                <w:body>
+                    <w:p><w:r><w:t>{{LISTA_ITENS}}</w:t></w:r></w:p>
+                </w:body>
+            </w:document>
+        "#;
+        write_docx_fixture(&template_path, document_xml);
+        let missing_excel_path_text = missing_excel_path.to_string_lossy();
+
+        let error = generate_document_and_register_to_paths(
+            &template_path,
+            &missing_excel_path_text,
+            &sample_module_config(),
+            &sample_payload(),
+            &output_path,
+        )
+        .unwrap_err();
+
+        assert!(error.contains("Planilha Excel não encontrada"));
+        assert!(!output_path.exists());
+    }
 }
 
 pub fn run() {
@@ -1203,6 +1451,7 @@ pub fn run() {
             get_default_save_filename,
             get_next_officio,
             generate_document,
+            generate_document_and_register,
             append_excel_row,
             list_drafts,
             save_draft,

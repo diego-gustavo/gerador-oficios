@@ -35,26 +35,6 @@ export interface AppConfig {
   modules: Record<string, ModuleConfig>;
 }
 
-export interface GeneratorModule {
-  // Metadados que permitem listar, configurar e documentar cada gerador.
-  moduleId: string;
-  name: string;
-  shortName: string;
-  route: AppRoute;
-  description: string;
-  iconName: string;
-  defaultDraftName: string;
-  defaultTemplatePath: string;
-  usesSuggestions: boolean;
-  templateTags: string[];
-  excel: {
-    subject: string;
-    destination: string;
-    columns: ExcelColumnMap;
-  };
-  helpSteps: string[];
-}
-
 export interface ModuleDraft<TPayload = unknown> {
   draftId?: string;
   moduleId: string;
@@ -94,6 +74,14 @@ export interface LostFoundGeneratePayload {
 export interface GeneratedDocument {
   path: string;
   officioNumber: string;
+}
+
+export interface ConfirmationRequest {
+  cancelLabel?: string;
+  confirmLabel: string;
+  message: string;
+  title: string;
+  tone?: "default" | "danger";
 }
 
 export interface ToastState {

@@ -2,6 +2,7 @@
 
 - [ ] `npm.cmd run typecheck`
 - [ ] `npm.cmd test`
+- [ ] `npm.cmd run smoke:browser`
 - [ ] `npm.cmd run build`
 - [ ] `cargo test` em `src-tauri`
 - [ ] `cargo check` em `src-tauri`

@@ -132,6 +132,21 @@ export async function generateDocument(
   });
 }
 
+export async function generateDocumentAndRegister(
+  moduleId: string,
+  payload: LostFoundGeneratePayload,
+  savePath: string,
+) {
+  if (!isTauriRuntime()) {
+    throw new Error("A geração de documentos está disponível apenas no app Tauri.");
+  }
+  return invoke<GeneratedDocument>("generate_document_and_register", {
+    moduleId,
+    payload,
+    savePath,
+  });
+}
+
 export async function appendExcelRow(moduleId: string, payload: LostFoundGeneratePayload) {
   if (!isTauriRuntime()) {
     throw new Error("O registro em planilha está disponível apenas no app Tauri.");

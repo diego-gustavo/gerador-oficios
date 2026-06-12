@@ -43,6 +43,7 @@ npm.cmd run tauri:build
 ```powershell
 npm.cmd run typecheck
 npm.cmd test
+npm.cmd run smoke:browser
 cd src-tauri
 cargo test
 cargo check
@@ -73,6 +74,8 @@ src-tauri/
   src/          comandos Tauri e lógica Rust
 docs/
   development.md     tutorial das funções e arquitetura
+  release-v1.0.0.md  notas e validação da primeira release
+  dependency-audit.md auditoria de dependências
   template.md        como editar templates Word
   excel.md           como configurar a planilha
   new-module.md      como criar novos módulos
